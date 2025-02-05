@@ -80,9 +80,9 @@ contract SPCompounderStrategy is BaseHealthCheck {
     // Mutated functions
     // ===============================================================
 
-    /// @notice Claim collateral gains from the Stability Pool
-    function claimCollateralGain() public {
-        _freeFunds(0);
+    /// @notice Claim collateral and yield gains from the Stability Pool
+    function claim() public {
+        _freeFunds(0); // @todo -- what happens if we have no deposit? will revert on SP -- check if balance, if not use `claimAllCollGains`
     }
 
     // ===============================================================
@@ -117,7 +117,7 @@ contract SPCompounderStrategy is BaseHealthCheck {
 
     /// @inheritdoc BaseStrategy
     function _tend(uint256 /*_totalIdle*/ ) internal override {
-        claimCollateralGain();
+        claim();
     }
 
     // ===============================================================

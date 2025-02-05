@@ -19,6 +19,14 @@ interface IFactory {
     function set_protocol_fee_recipient(address) external;
 }
 
+interface IStabilityPool {
+    function triggerBoldRewards(uint256 _boldYield) external;
+    function activePool() external view returns (address);
+    function getDepositorYieldGain(address _depositor) external view returns (uint256);
+    function getDepositorYieldGainWithPending(address _depositor) external view returns (uint256);
+    function getCompoundedBoldDeposit(address _depositor) external view returns (uint256);
+}
+
 contract Setup is ExtendedTest, IEvents {
     // Contract instances that we will use repeatedly.
     ERC20 public asset;
@@ -34,6 +42,9 @@ contract Setup is ExtendedTest, IEvents {
     address public management = address(1);
     address public performanceFeeRecipient = address(3);
     address public emergencyAdmin = address(5);
+
+    // Contract addresses.
+    address public stabilityPool = address(0xF69eB8C0d95D4094c16686769460f678727393CF); // WETH Stability Pool
 
     // Address of the real deployed Factory
     address public factory;
@@ -77,13 +88,7 @@ contract Setup is ExtendedTest, IEvents {
     function setUpStrategy() public returns (address) {
         // we save the strategy as a IStrategyInterface to give it the needed interface
         IStrategyInterface _strategy = IStrategyInterface(
-            address(
-                strategyFactory.newStrategy(
-                    address(0xF69eB8C0d95D4094c16686769460f678727393CF), // WETH Stability Pool
-                    address(asset),
-                    "Tokenized Strategy"
-                )
-            )
+            address(strategyFactory.newStrategy(stabilityPool, address(asset), "Tokenized Strategy"))
         );
 
         vm.prank(management);
@@ -125,6 +130,14 @@ contract Setup is ExtendedTest, IEvents {
     function airdrop(ERC20 _asset, address _to, uint256 _amount) public {
         uint256 balanceBefore = _asset.balanceOf(_to);
         deal(address(_asset), _to, balanceBefore + _amount);
+    }
+
+    function earnInterest(uint256 _amount) public {
+        airdrop(ERC20(tokenAddrs["WETH"]), stabilityPool, _amount);
+        IStabilityPool _stabilityPool = IStabilityPool(stabilityPool);
+        vm.prank(_stabilityPool.activePool());
+        _stabilityPool.triggerBoldRewards(_amount);
+        strategy.claim();
     }
 
     function setFees(uint16 _protocolFee, uint16 _performanceFee) public {

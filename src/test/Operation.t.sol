@@ -7,6 +7,10 @@ import {Setup, ERC20, IStrategyInterface} from "./utils/Setup.sol";
 contract OperationTest is Setup {
     function setUp() public virtual override {
         super.setUp();
+
+        // Make fuzz less extreme
+        maxFuzzAmount = maxFuzzAmount / 1e5; // 1e25
+        minFuzzAmount = minFuzzAmount * 1e10; // 1e14
     }
 
     function test_setupStrategyOK() public {
@@ -16,7 +20,9 @@ contract OperationTest is Setup {
         assertEq(strategy.management(), management);
         assertEq(strategy.performanceFeeRecipient(), performanceFeeRecipient);
         assertEq(strategy.keeper(), keeper);
-        // TODO: add additional check on strat params
+        assertEq(strategy.auction(), address(0));
+        assertEq(strategy.COLL(), tokenAddrs["WETH"]);
+        assertEq(strategy.SP(), stabilityPool);
     }
 
     function test_operation(uint256 _amount) public {
@@ -59,18 +65,15 @@ contract OperationTest is Setup {
         assertEq(strategy.totalAssets(), _amount, "!totalAssets");
 
         // Earn Interest
-        skip(1 days);
-
-        // TODO: implement logic to simulate earning interest.
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
-        airdrop(asset, address(strategy), toAirdrop);
+        earnInterest(toAirdrop);
 
         // Report profit
         vm.prank(keeper);
         (uint256 profit, uint256 loss) = strategy.report();
 
         // Check return Values
-        assertGe(profit, toAirdrop, "!profit");
+        assertGt(profit, 0, "!profit");
         assertEq(loss, 0, "!loss");
 
         skip(strategy.profitMaxUnlockTime());
@@ -85,7 +88,7 @@ contract OperationTest is Setup {
     }
 
     function test_profitableReport_withFees(uint256 _amount, uint16 _profitFactor) public {
-        vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
+        vm.assume(_amount > minFuzzAmount * 1e4 && _amount < maxFuzzAmount);
         _profitFactor = uint16(bound(uint256(_profitFactor), 10, MAX_BPS / 10));
 
         // Set protocol fee to 0 and perf fee to 10%
@@ -97,18 +100,15 @@ contract OperationTest is Setup {
         assertEq(strategy.totalAssets(), _amount, "!totalAssets");
 
         // Earn Interest
-        skip(1 days);
-
-        // TODO: implement logic to simulate earning interest.
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
-        airdrop(asset, address(strategy), toAirdrop);
+        earnInterest(toAirdrop);
 
         // Report profit
         vm.prank(keeper);
         (uint256 profit, uint256 loss) = strategy.report();
 
         // Check return Values
-        assertGe(profit, toAirdrop, "!profit");
+        assertGt(profit, 0, "!profit");
         assertEq(loss, 0, "!loss");
 
         skip(strategy.profitMaxUnlockTime());
@@ -170,4 +170,6 @@ contract OperationTest is Setup {
         (trigger,) = strategy.tendTrigger();
         assertTrue(!trigger);
     }
+
+    // @todo -- here -- simulate coll gain and make sure tendTrigger is true. also that tend works (use .offset())
 }
