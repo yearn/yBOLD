@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity 0.8.23;
 
-import {BaseHealthCheck, ERC20} from "@periphery/Bases/HealthCheck/BaseHealthCheck.sol";
+import {BaseHealthCheck, BaseStrategy, ERC20} from "@periphery/Bases/HealthCheck/BaseHealthCheck.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {IStabilityPool} from "./interfaces/IStabilityPool.sol";
@@ -25,11 +25,7 @@ contract SPCompounderStrategy is BaseHealthCheck {
     /// @notice The dust threshold for the strategy. Any amount below this will be ignored
     uint256 private constant DUST_THRESHOLD = 10_000;
 
-    constructor(
-        address _sp,
-        address _asset,
-        string memory _name
-    ) BaseHealthCheck(_asset, _name) {
+    constructor(address _sp, address _asset, string memory _name) BaseHealthCheck(_asset, _name) {
         SP = IStabilityPool(_sp);
         require(SP.boldToken() == _asset, "!sp");
         COLL = ERC20(SP.collToken());
@@ -47,13 +43,11 @@ contract SPCompounderStrategy is BaseHealthCheck {
     /// @notice Estimated total assets held by the strategy
     /// @dev Does not account for pending collateral reward value
     function estimatedTotalAssets() public view returns (uint256) {
-        return asset.balanceOf(address(this)) + stabilityPool.getCompoundedBoldDeposit(address(this));
+        return asset.balanceOf(address(this)) + SP.getCompoundedBoldDeposit(address(this));
     }
 
     /// @inheritdoc BaseStrategy
-    function availableWithdrawLimit(
-        address /*_owner*/
-    ) public view override returns (uint256) {
+    function availableWithdrawLimit(address /*_owner*/ ) public view override returns (uint256) {
         return estimatedTotalAssets();
     }
 
@@ -106,12 +100,8 @@ contract SPCompounderStrategy is BaseHealthCheck {
     }
 
     /// @inheritdoc BaseStrategy
-    function _harvestAndReport()
-        internal
-        override
-        returns (uint256 _totalAssets)
-    {
-        if(!TokenizedStrategy.isShutdown()) {
+    function _harvestAndReport() internal override returns (uint256 _totalAssets) {
+        if (!TokenizedStrategy.isShutdown()) {
             uint256 _toDeploy = asset.balanceOf(address(this));
             if (_toDeploy > DUST_THRESHOLD) _deployFunds(_toDeploy);
         }
@@ -120,13 +110,13 @@ contract SPCompounderStrategy is BaseHealthCheck {
     }
 
     /// @inheritdoc BaseStrategy
-    function _emergencyWithdraw(uint256 /*_amount*/) internal override {
+    function _emergencyWithdraw(uint256 /*_amount*/ ) internal override {
         // Pull full amount and claim collateral/yield gains. Stability pool scales down to actual balance for us
         _freeFunds(type(uint256).max);
     }
 
     /// @inheritdoc BaseStrategy
-    function _tend(uint256 /*_totalIdle*/) internal override {
+    function _tend(uint256 /*_totalIdle*/ ) internal override {
         claimCollateralGain();
     }
 
