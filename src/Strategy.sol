@@ -13,6 +13,9 @@ import {IAuction} from "./interfaces/IAuction.sol";
 contract SPCompounderStrategy is BaseHealthCheck {
     using SafeERC20 for ERC20;
 
+    /// The max the base fee (in gwei) will be for a tend
+    uint256 public maxGasPriceToTend;
+
     /// @notice The auction contract for dumping the collateral token
     IAuction public auction;
 
@@ -29,6 +32,8 @@ contract SPCompounderStrategy is BaseHealthCheck {
         SP = IStabilityPool(_sp);
         require(SP.boldToken() == _asset, "!sp");
         COLL = ERC20(SP.collToken());
+
+        maxGasPriceToTend = 200 * 1e9;
     }
 
     // ===============================================================
@@ -61,6 +66,12 @@ contract SPCompounderStrategy is BaseHealthCheck {
         require(_auction.receiver() == address(this), "!receiver");
         require(_auction.want() == address(asset), "!want");
         auction = _auction;
+    }
+
+    /// @notice Set the maximum gas price for tending
+    /// @param _maxGasPriceToTend New maximum gas price
+    function setMaxGasPriceToTend(uint256 _maxGasPriceToTend) external onlyManagement {
+        maxGasPriceToTend = _maxGasPriceToTend;
     }
 
     // ===============================================================
@@ -126,8 +137,15 @@ contract SPCompounderStrategy is BaseHealthCheck {
 
     /// @inheritdoc BaseStrategy
     function _tendTrigger() internal view override returns (bool) {
+        if (TokenizedStrategy.totalAssets() == 0) return false;
+
         // Tend to minimize collateral/asset exchange rate exposure
-        return isCollateralGainToClaim();
-        // @todo -- take gas into account etc
+        return _isBaseFeeAcceptable() && isCollateralGainToClaim();
+    }
+
+    /// @notice Checks if base fee is acceptable
+    /// @return True if base fee is below threshold
+    function _isBaseFeeAcceptable() internal view returns (bool) {
+        return block.basefee <= maxGasPriceToTend;
     }
 }

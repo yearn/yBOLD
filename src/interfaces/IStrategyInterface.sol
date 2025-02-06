@@ -5,6 +5,7 @@ import {IStrategy} from "@tokenized-strategy/interfaces/IStrategy.sol";
 
 interface IStrategyInterface is IStrategy {
     // Storage
+    function maxGasPriceToTend() external view returns (uint256);
     function auction() external view returns (address);
     function COLL() external view returns (address);
     function SP() external view returns (address);

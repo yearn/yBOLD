@@ -20,6 +20,7 @@ contract OperationTest is Setup {
         assertEq(strategy.management(), management);
         assertEq(strategy.performanceFeeRecipient(), performanceFeeRecipient);
         assertEq(strategy.keeper(), keeper);
+        assertEq(strategy.maxGasPriceToTend(), 200 * 1e9);
         assertEq(strategy.auction(), address(0));
         assertEq(strategy.COLL(), tokenAddrs["WETH"]);
         assertEq(strategy.SP(), stabilityPool);
