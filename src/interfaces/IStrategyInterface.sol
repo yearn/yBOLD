@@ -21,4 +21,5 @@ interface IStrategyInterface is IStrategy {
 
     // Mutated
     function claim() external;
+    function claimNoDeposit() external;
 }

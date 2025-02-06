@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 
 import "forge-std/console2.sol";
-import {Setup, ERC20, IStrategyInterface} from "./utils/Setup.sol";
+import {Setup, ERC20, IStabilityPool, IStrategyInterface} from "./utils/Setup.sol";
 
 contract OperationTest is Setup {
     function setUp() public virtual override {
@@ -66,7 +66,7 @@ contract OperationTest is Setup {
 
         // Earn Interest
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
-        earnInterest(toAirdrop);
+        simulateYieldGain(toAirdrop);
 
         // Report profit
         vm.prank(keeper);
@@ -101,7 +101,7 @@ contract OperationTest is Setup {
 
         // Earn Interest
         uint256 toAirdrop = (_amount * _profitFactor) / MAX_BPS;
-        earnInterest(toAirdrop);
+        simulateYieldGain(toAirdrop);
 
         // Report profit
         vm.prank(keeper);
@@ -171,5 +171,66 @@ contract OperationTest is Setup {
         assertTrue(!trigger);
     }
 
-    // @todo -- here -- simulate coll gain and make sure tendTrigger is true. also that tend works (use .offset())
+    function test_tendAfterCollateralGain(uint256 _amount) public {
+        vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
+
+        // Deposit into strategy
+        mintAndDepositIntoStrategy(strategy, user, _amount);
+
+        uint256 _estimatedTotalAssetsBefore = strategy.estimatedTotalAssets();
+
+        (bool trigger,) = strategy.tendTrigger();
+        assertFalse(trigger, "test_tendAfterCollateralGain: E0");
+        assertFalse(strategy.isCollateralGainToClaim(), "test_tendAfterCollateralGain: E1");
+
+        // Earn Collateral, lose principal
+        simulateCollateralGain();
+
+        assertLt(strategy.estimatedTotalAssets(), _estimatedTotalAssetsBefore, "test_tendAfterCollateralGain: E2");
+        assertTrue(strategy.isCollateralGainToClaim(), "test_tendAfterCollateralGain: E3");
+
+        (trigger,) = strategy.tendTrigger();
+        assertTrue(trigger, "test_tendAfterCollateralGain: E4");
+
+        // Reporting should fail until we swap the collateral gain
+        vm.prank(keeper);
+        vm.expectRevert("healthCheck");
+        strategy.report();
+
+        IStabilityPool _stabilityPool = IStabilityPool(strategy.SP());
+        uint256 _expectedCollateralGain = _stabilityPool.getDepositorCollGain(address(strategy));
+        assertEq(ERC20(strategy.COLL()).balanceOf(address(strategy)), 0, "test_tendAfterCollateralGain: E5");
+
+        // Claim collateral gain
+        vm.prank(keeper);
+        strategy.tend();
+
+        assertEq(
+            ERC20(strategy.COLL()).balanceOf(address(strategy)),
+            _expectedCollateralGain,
+            "test_tendAfterCollateralGain: E6"
+        );
+        assertEq(_stabilityPool.getDepositorCollGain(address(strategy)), 0, "test_tendAfterCollateralGain: E7");
+
+        (trigger,) = strategy.tendTrigger();
+        assertFalse(trigger, "test_tendAfterCollateralGain: E8");
+
+        // Simulate swap collateral gain
+        vm.prank(management);
+        strategy.setAuction(address(auctionMock));
+        vm.prank(keeper);
+        strategy.kickAuction();
+
+        // Add 5% bonus
+        uint256 _expectedAssetGain = (_expectedCollateralGain * ethPrice() / 1e18) * 105 / 100;
+        airdrop(asset, address(strategy), _expectedAssetGain);
+
+        // Report profit
+        vm.prank(keeper);
+        (uint256 profit, uint256 loss) = strategy.report();
+
+        assertGt(profit, 0, "test_tendAfterCollateralGain: E9");
+        assertEq(loss, 0, "test_tendAfterCollateralGain: E10");
+        assertGt(strategy.estimatedTotalAssets(), _estimatedTotalAssetsBefore, "test_tendAfterCollateralGain: E11");
+    }
 }

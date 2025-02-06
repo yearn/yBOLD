@@ -4,6 +4,8 @@ pragma solidity ^0.8.18;
 import "forge-std/console2.sol";
 import {ExtendedTest} from "./ExtendedTest.sol";
 
+import {AuctionMock} from "../mocks/AuctionMock.sol";
+
 import {SPCompounderStrategy as Strategy, ERC20} from "../../Strategy.sol";
 import {StrategyFactory} from "../../StrategyFactory.sol";
 import {IStrategyInterface} from "../../interfaces/IStrategyInterface.sol";
@@ -22,9 +24,16 @@ interface IFactory {
 interface IStabilityPool {
     function triggerBoldRewards(uint256 _boldYield) external;
     function activePool() external view returns (address);
+    function troveManager() external view returns (address);
     function getDepositorYieldGain(address _depositor) external view returns (uint256);
     function getDepositorYieldGainWithPending(address _depositor) external view returns (uint256);
     function getCompoundedBoldDeposit(address _depositor) external view returns (uint256);
+    function getDepositorCollGain(address _depositor) external view returns (uint256);
+    function offset(uint256 _debtToOffset, uint256 _collToAdd) external;
+}
+
+interface IActivePool {
+    function getCollBalance() external view returns (uint256);
 }
 
 contract Setup is ExtendedTest, IEvents {
@@ -33,6 +42,7 @@ contract Setup is ExtendedTest, IEvents {
     IStrategyInterface public strategy;
 
     StrategyFactory public strategyFactory;
+    AuctionMock public auctionMock;
 
     mapping(string => address) public tokenAddrs;
 
@@ -73,6 +83,8 @@ contract Setup is ExtendedTest, IEvents {
 
         // Deploy strategy and set variables
         strategy = IStrategyInterface(setUpStrategy());
+
+        auctionMock = new AuctionMock(address(asset), address(strategy));
 
         factory = strategy.FACTORY();
 
@@ -132,12 +144,26 @@ contract Setup is ExtendedTest, IEvents {
         deal(address(_asset), _to, balanceBefore + _amount);
     }
 
-    function earnInterest(uint256 _amount) public {
+    function simulateYieldGain(uint256 _amount) public {
         airdrop(ERC20(tokenAddrs["WETH"]), stabilityPool, _amount);
         IStabilityPool _stabilityPool = IStabilityPool(stabilityPool);
         vm.prank(_stabilityPool.activePool());
         _stabilityPool.triggerBoldRewards(_amount);
         strategy.claim();
+    }
+
+    function simulateCollateralGain() public {
+        IStabilityPool _stabilityPool = IStabilityPool(stabilityPool);
+        uint256 _availableCollateral = IActivePool(_stabilityPool.activePool()).getCollBalance();
+        uint256 _collToAdd = _availableCollateral / 10;
+        require(_collToAdd >= 1 ether, "simulateCollateralGain: Not enough collateral!");
+        uint256 _debtToOffset = _collToAdd * ethPrice() / 1e18;
+        vm.prank(_stabilityPool.troveManager());
+        _stabilityPool.offset(_debtToOffset, _collToAdd);
+    }
+
+    function ethPrice() public view returns (uint256) {
+        return 3000 ether;
     }
 
     function setFees(uint16 _protocolFee, uint16 _performanceFee) public {

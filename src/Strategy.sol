@@ -82,7 +82,7 @@ contract SPCompounderStrategy is BaseHealthCheck {
 
     /// @notice Claim collateral and yield gains from the Stability Pool
     function claim() public {
-        _freeFunds(0); // @todo -- what happens if we have no deposit? will revert on SP -- check if balance, if not use `claimAllCollGains`
+        _freeFunds(0);
     }
 
     // ===============================================================
@@ -128,5 +128,6 @@ contract SPCompounderStrategy is BaseHealthCheck {
     function _tendTrigger() internal view override returns (bool) {
         // Tend to minimize collateral/asset exchange rate exposure
         return isCollateralGainToClaim();
+        // @todo -- take gas into account etc
     }
 }
