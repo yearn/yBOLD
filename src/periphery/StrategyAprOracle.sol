@@ -3,7 +3,13 @@ pragma solidity ^0.8.18;
 
 import {AprOracleBase} from "@periphery/AprOracle/AprOracleBase.sol";
 
+// @todo -- ir's + debt amount == revenue to sp (+ liqs)
+// average rate * debt / SP deposits
+// multiTroveGetter.getMultipleSortedTroves(uint256 _collIndex, int256 _startIdx, uint256 _count)
+// uint256 _count == sortedTroves.getSize()
+// SP deposits == sp.getTotalBoldDeposits()
 contract StrategyAprOracle is AprOracleBase {
+
     constructor() AprOracleBase("Strategy Apr Oracle Example", msg.sender) {}
 
     /**
@@ -30,4 +36,5 @@ contract StrategyAprOracle is AprOracleBase {
         //      APR estimation for the strategy.
         return 1e17;
     }
+
 }

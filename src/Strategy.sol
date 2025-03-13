@@ -7,17 +7,23 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IStabilityPool} from "./interfaces/IStabilityPool.sol";
 import {IAuction} from "./interfaces/IAuction.sol";
 
-/// @title Liquity V2 Stability Pool Compounder Strategy
-/// @notice A strategy for compounding Liquity SP collateral rewards into the underlying asset
-/// @dev Inherits BaseHealthCheck for vault functionality and prevention of unexpected `report` behavior
 contract SPCompounderStrategy is BaseHealthCheck {
+
     using SafeERC20 for ERC20;
 
-    /// The max the base fee (in gwei) will be for a tend
+    // ===============================================================
+    // Storage
+    // ===============================================================
+
+    /// @notice The max the base fee (in gwei) will be for a tend
     uint256 public maxGasPriceToTend;
 
-    /// @notice The auction contract for dumping the collateral token
+    /// @notice The auction contract for selling the collateral token
     IAuction public auction;
+
+    // ===============================================================
+    // Constants
+    // ===============================================================
 
     /// @notice The collateral token of the Stability Pool
     ERC20 public immutable COLL;
@@ -28,6 +34,13 @@ contract SPCompounderStrategy is BaseHealthCheck {
     /// @notice The dust threshold for the strategy. Any amount below this will be ignored
     uint256 private constant DUST_THRESHOLD = 10_000;
 
+    // ===============================================================
+    // Constructor
+    // ===============================================================
+
+    /// @param _sp Address of the Stability Pool
+    /// @param _asset Address of the strategy's underlying asset
+    /// @param _name Name of the strategy
     constructor(address _sp, address _asset, string memory _name) BaseHealthCheck(_asset, _name) {
         SP = IStabilityPool(_sp);
         require(SP.boldToken() == _asset, "!sp");
@@ -41,18 +54,22 @@ contract SPCompounderStrategy is BaseHealthCheck {
     // ===============================================================
 
     /// @notice Check if there are collateral gains to claim from the Stability Pool
+    /// @return True if there are collateral gains to claim
     function isCollateralGainToClaim() public view returns (bool) {
         return SP.getDepositorCollGain(address(this)) > 0;
     }
 
     /// @notice Estimated total assets held by the strategy
     /// @dev Does not account for pending collateral reward value
+    /// @return Estimated total assets held by the strategy
     function estimatedTotalAssets() public view returns (uint256) {
         return asset.balanceOf(address(this)) + SP.getCompoundedBoldDeposit(address(this));
     }
 
     /// @inheritdoc BaseStrategy
-    function availableWithdrawLimit(address /*_owner*/ ) public view override returns (uint256) {
+    function availableWithdrawLimit(
+        address /*_owner*/
+    ) public view override returns (uint256) {
         return estimatedTotalAssets();
     }
 
@@ -62,7 +79,9 @@ contract SPCompounderStrategy is BaseHealthCheck {
 
     /// @notice Set the auction contract
     /// @param _auction The new auction contract
-    function setAuction(IAuction _auction) external onlyManagement {
+    function setAuction(
+        IAuction _auction
+    ) external onlyManagement {
         require(_auction.receiver() == address(this), "!receiver");
         require(_auction.want() == address(asset), "!want");
         auction = _auction;
@@ -70,7 +89,9 @@ contract SPCompounderStrategy is BaseHealthCheck {
 
     /// @notice Set the maximum gas price for tending
     /// @param _maxGasPriceToTend New maximum gas price
-    function setMaxGasPriceToTend(uint256 _maxGasPriceToTend) external onlyManagement {
+    function setMaxGasPriceToTend(
+        uint256 _maxGasPriceToTend
+    ) external onlyManagement {
         maxGasPriceToTend = _maxGasPriceToTend;
     }
 
@@ -79,6 +100,7 @@ contract SPCompounderStrategy is BaseHealthCheck {
     // ===============================================================
 
     /// @notice Kick an auction for the collateral token
+    /// @return Available amount for bidding on in the auction
     function kickAuction() external onlyKeepers returns (uint256) {
         uint256 _toAuction = COLL.balanceOf(address(this));
         require(_toAuction > 0, "!toAuction");
@@ -101,12 +123,16 @@ contract SPCompounderStrategy is BaseHealthCheck {
     // ===============================================================
 
     /// @inheritdoc BaseStrategy
-    function _deployFunds(uint256 _amount) internal override {
+    function _deployFunds(
+        uint256 _amount
+    ) internal override {
         SP.provideToSP(_amount, true);
     }
 
     /// @inheritdoc BaseStrategy
-    function _freeFunds(uint256 _amount) internal override {
+    function _freeFunds(
+        uint256 _amount
+    ) internal override {
         SP.withdrawFromSP(_amount, true);
     }
 
@@ -121,18 +147,22 @@ contract SPCompounderStrategy is BaseHealthCheck {
     }
 
     /// @inheritdoc BaseStrategy
-    function _emergencyWithdraw(uint256 /*_amount*/ ) internal override {
+    function _emergencyWithdraw(
+        uint256 /*_amount*/
+    ) internal override {
         // Pull full amount and claim collateral/yield gains. Stability pool scales down to actual balance for us
         _freeFunds(type(uint256).max);
     }
 
     /// @inheritdoc BaseStrategy
-    function _tend(uint256 /*_totalIdle*/ ) internal override {
+    function _tend(
+        uint256 /*_totalIdle*/
+    ) internal override {
         claim();
     }
 
     // ===============================================================
-    // Internal View functions
+    // Internal view functions
     // ===============================================================
 
     /// @inheritdoc BaseStrategy
@@ -140,12 +170,7 @@ contract SPCompounderStrategy is BaseHealthCheck {
         if (TokenizedStrategy.totalAssets() == 0) return false;
 
         // Tend to minimize collateral/asset exchange rate exposure
-        return _isBaseFeeAcceptable() && isCollateralGainToClaim();
+        return block.basefee <= maxGasPriceToTend && isCollateralGainToClaim();
     }
 
-    /// @notice Checks if base fee is acceptable
-    /// @return True if base fee is below threshold
-    function _isBaseFeeAcceptable() internal view returns (bool) {
-        return block.basefee <= maxGasPriceToTend;
-    }
 }

@@ -2,6 +2,7 @@
 pragma solidity 0.8.23;
 
 contract AuctionMock {
+
     address public want;
     address public receiver;
 
@@ -10,7 +11,10 @@ contract AuctionMock {
         receiver = _receiver;
     }
 
-    function kick(address _token) external returns (uint256) {
+    function kick(
+        address
+    ) external pure returns (uint256) {
         return 0;
     }
+
 }

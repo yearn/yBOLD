@@ -14,29 +14,50 @@ import {IStrategyInterface} from "../../interfaces/IStrategyInterface.sol";
 import {IEvents} from "@tokenized-strategy/interfaces/IEvents.sol";
 
 interface IFactory {
+
     function governance() external view returns (address);
 
-    function set_protocol_fee_bps(uint16) external;
+    function set_protocol_fee_bps(
+        uint16
+    ) external;
 
-    function set_protocol_fee_recipient(address) external;
+    function set_protocol_fee_recipient(
+        address
+    ) external;
+
 }
 
 interface IStabilityPool {
-    function triggerBoldRewards(uint256 _boldYield) external;
+
+    function triggerBoldRewards(
+        uint256 _boldYield
+    ) external;
     function activePool() external view returns (address);
     function troveManager() external view returns (address);
-    function getDepositorYieldGain(address _depositor) external view returns (uint256);
-    function getDepositorYieldGainWithPending(address _depositor) external view returns (uint256);
-    function getCompoundedBoldDeposit(address _depositor) external view returns (uint256);
-    function getDepositorCollGain(address _depositor) external view returns (uint256);
+    function getDepositorYieldGain(
+        address _depositor
+    ) external view returns (uint256);
+    function getDepositorYieldGainWithPending(
+        address _depositor
+    ) external view returns (uint256);
+    function getCompoundedBoldDeposit(
+        address _depositor
+    ) external view returns (uint256);
+    function getDepositorCollGain(
+        address _depositor
+    ) external view returns (uint256);
     function offset(uint256 _debtToOffset, uint256 _collToAdd) external;
+
 }
 
 interface IActivePool {
+
     function getCollBalance() external view returns (uint256);
+
 }
 
 contract Setup is ExtendedTest, IEvents {
+
     // Contract instances that we will use repeatedly.
     ERC20 public asset;
     IStrategyInterface public strategy;
@@ -63,9 +84,9 @@ contract Setup is ExtendedTest, IEvents {
     uint256 public decimals;
     uint256 public MAX_BPS = 10_000;
 
-    // Fuzz from $0.01 of 1e6 stable coins up to 1 trillion of a 1e18 coin
-    uint256 public maxFuzzAmount = 1e30;
-    uint256 public minFuzzAmount = 10_000;
+    // Fuzz from $0.01 of 1e18 stable coins up to 100 million of a 1e18 coin
+    uint256 public maxFuzzAmount = 100_000_000_000 ether;
+    uint256 public minFuzzAmount = 0.01 ether;
 
     // Default profit max unlock time is set for 10 days
     uint256 public profitMaxUnlockTime = 10 days;
@@ -144,7 +165,9 @@ contract Setup is ExtendedTest, IEvents {
         deal(address(_asset), _to, balanceBefore + _amount);
     }
 
-    function simulateYieldGain(uint256 _amount) public {
+    function simulateYieldGain(
+        uint256 _amount
+    ) public {
         airdrop(ERC20(tokenAddrs["WETH"]), stabilityPool, _amount);
         IStabilityPool _stabilityPool = IStabilityPool(stabilityPool);
         vm.prank(_stabilityPool.activePool());
@@ -162,7 +185,7 @@ contract Setup is ExtendedTest, IEvents {
         _stabilityPool.offset(_debtToOffset, _collToAdd);
     }
 
-    function ethPrice() public view returns (uint256) {
+    function ethPrice() public pure returns (uint256) {
         return 3000 ether;
     }
 
@@ -190,4 +213,5 @@ contract Setup is ExtendedTest, IEvents {
         tokenAddrs["USDC"] = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
         tokenAddrs["BOLD"] = 0xb01dd87B29d187F3E3a4Bf6cdAebfb97F3D9aB98;
     }
+
 }

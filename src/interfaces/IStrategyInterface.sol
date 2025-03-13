@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 import {IStrategy} from "@tokenized-strategy/interfaces/IStrategy.sol";
 
 interface IStrategyInterface is IStrategy {
+
     // Storage
     function maxGasPriceToTend() external view returns (uint256);
     function auction() external view returns (address);
@@ -15,7 +16,9 @@ interface IStrategyInterface is IStrategy {
     function estimatedTotalAssets() external view returns (uint256);
 
     // Management
-    function setAuction(address _auction) external;
+    function setAuction(
+        address _auction
+    ) external;
 
     // Keeper
     function kickAuction() external returns (uint256);
@@ -23,4 +26,5 @@ interface IStrategyInterface is IStrategy {
     // Mutated
     function claim() external;
     function claimNoDeposit() external;
+
 }

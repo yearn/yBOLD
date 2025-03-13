@@ -5,6 +5,7 @@ import {SPCompounderStrategy, ERC20} from "./Strategy.sol";
 import {IStrategyInterface} from "./interfaces/IStrategyInterface.sol";
 
 contract StrategyFactory {
+
     event NewStrategy(address indexed strategy, address indexed asset);
 
     address public immutable emergencyAdmin;
@@ -54,8 +55,11 @@ contract StrategyFactory {
         keeper = _keeper;
     }
 
-    function isDeployedStrategy(address _strategy) external view returns (bool) {
+    function isDeployedStrategy(
+        address _strategy
+    ) external view returns (bool) {
         address _asset = IStrategyInterface(_strategy).asset();
         return deployments[_asset] == _strategy;
     }
+
 }
