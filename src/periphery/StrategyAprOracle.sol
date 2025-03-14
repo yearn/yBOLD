@@ -3,12 +3,16 @@ pragma solidity ^0.8.18;
 
 import {AprOracleBase} from "@periphery/AprOracle/AprOracleBase.sol";
 
+import {IStrategyInterface as IStrategy} from "../interfaces/IStrategyInterface.sol";
+import {IMultiTroveGetter} from "../interfaces/IMultiTroveGetter.sol";
+
 // @todo -- ir's + debt amount == revenue to sp (+ liqs)
 // average rate * debt / SP deposits
-// multiTroveGetter.getMultipleSortedTroves(uint256 _collIndex, int256 _startIdx, uint256 _count)
-// uint256 _count == sortedTroves.getSize()
+// multiTroveGetter.getMultipleSortedTroves(uint256 d, int256 _startIdx, uint256 _count)
 // SP deposits == sp.getTotalBoldDeposits()
 contract StrategyAprOracle is AprOracleBase {
+
+    IMultiTroveGetter public immutable MULTI_TROVE_GETTER;
 
     constructor() AprOracleBase("Strategy Apr Oracle Example", msg.sender) {}
 
@@ -32,9 +36,24 @@ contract StrategyAprOracle is AprOracleBase {
      * @return . The expected apr for the strategy represented as 1e18.
      */
     function aprAfterDebtChange(address _strategy, int256 _delta) external view override returns (uint256) {
-        // TODO: Implement any necessary logic to return the most accurate
-        //      APR estimation for the strategy.
-        return 1e17;
+        // uint256 _collateralIndex = _getCollateralIndex(IStrategy(_strategy).COLL());
+        // ITroveManager _troveManager = COLLATERAL_REGISTRY.getTroveManager(_collateralIndex).troveManager();
+        // uint256 _count = _troveManager.sortedTroves().getSize();
+        // IMultiTroveGetter.CombinedTroveData[] memory _troves = MULTI_TROVE_GETTER.getMultipleSortedTroves(
+        //     _collateralIndex,
+        //     0, // startIdx
+        //     _count
+        // );
+
+        // // uint256 _stabilityPoolDeposits = _troveManager.stabilityPool().getTotalBoldDeposits();
     }
+
+    // function _getCollateralIndex(address _collateralToken) internal view returns (uint256) {
+    //     uint256 _length = COLLATERAL_REGISTRY.totalCollaterals();
+    //     for (uint256 i = 0; i < _length; ++i) {
+    //         if (COLLATERAL_REGISTRY.getToken(i) == _collateralToken) return i;
+    //     }
+    //     revert("!_collateralToken");
+    // }
 
 }

@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity 0.8.23;
 
+import {ITroveManager} from "./ITroveManager.sol";
+
 interface IStabilityPool {
 
     function boldToken() external view returns (address);
     function collToken() external view returns (address);
+    function troveManager() external view returns (ITroveManager);
     function getCompoundedBoldDeposit(
         address _depositor
     ) external view returns (uint256);

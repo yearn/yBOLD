@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.18;
 
-import {SPCompounderStrategy, ERC20} from "./Strategy.sol";
+import {SPCompounderStrategy as Strategy, ERC20} from "./Strategy.sol";
 import {IStrategyInterface} from "./interfaces/IStrategyInterface.sol";
 
 contract StrategyFactory {
@@ -32,7 +32,7 @@ contract StrategyFactory {
      */
     function newStrategy(address _sp, address _asset, string calldata _name) external virtual returns (address) {
         // tokenized strategies available setters.
-        IStrategyInterface _newStrategy = IStrategyInterface(address(new SPCompounderStrategy(_sp, _asset, _name)));
+        IStrategyInterface _newStrategy = IStrategyInterface(address(new Strategy(_sp, _asset, _name)));
 
         _newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 

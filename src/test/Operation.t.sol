@@ -8,10 +8,6 @@ contract OperationTest is Setup {
 
     function setUp() public virtual override {
         super.setUp();
-
-        // Make fuzz less extreme
-        maxFuzzAmount = maxFuzzAmount / 1e5; // 1e25
-        minFuzzAmount = minFuzzAmount * 1e10; // 1e14
     }
 
     function test_setupStrategyOK() public {

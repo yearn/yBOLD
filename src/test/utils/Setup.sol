@@ -84,8 +84,8 @@ contract Setup is ExtendedTest, IEvents {
     uint256 public decimals;
     uint256 public MAX_BPS = 10_000;
 
-    // Fuzz from $0.01 of 1e18 stable coins up to 100 million of a 1e18 coin
-    uint256 public maxFuzzAmount = 100_000_000_000 ether;
+    // Fuzz from $0.01 of 1e18 stable coins up to 1 trillion of a 1e18 coin
+    uint256 public maxFuzzAmount = 1_000_000_000_000 ether;
     uint256 public minFuzzAmount = 0.01 ether;
 
     // Default profit max unlock time is set for 10 days
@@ -168,7 +168,7 @@ contract Setup is ExtendedTest, IEvents {
     function simulateYieldGain(
         uint256 _amount
     ) public {
-        airdrop(ERC20(tokenAddrs["WETH"]), stabilityPool, _amount);
+        airdrop(ERC20(tokenAddrs["BOLD"]), stabilityPool, _amount);
         IStabilityPool _stabilityPool = IStabilityPool(stabilityPool);
         vm.prank(_stabilityPool.activePool());
         _stabilityPool.triggerBoldRewards(_amount);
@@ -181,12 +181,14 @@ contract Setup is ExtendedTest, IEvents {
         uint256 _collToAdd = _availableCollateral / 10;
         require(_collToAdd >= 1 ether, "simulateCollateralGain: Not enough collateral!");
         uint256 _debtToOffset = _collToAdd * ethPrice() / 1e18;
+        vm.assume(_debtToOffset < 4000 ether); // @todo -- make sure `_debtToOffset < sp deposits`
         vm.prank(_stabilityPool.troveManager());
         _stabilityPool.offset(_debtToOffset, _collToAdd);
     }
 
+    // @todo -- get price from chainlink
     function ethPrice() public pure returns (uint256) {
-        return 3000 ether;
+        return 1800 ether;
     }
 
     function setFees(uint16 _protocolFee, uint16 _performanceFee) public {
