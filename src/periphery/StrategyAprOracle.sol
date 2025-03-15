@@ -46,6 +46,7 @@ contract StrategyAprOracle is AprOracleBase {
         // );
 
         // // uint256 _stabilityPoolDeposits = _troveManager.stabilityPool().getTotalBoldDeposits();
+        return 1e17;
     }
 
     // function _getCollateralIndex(address _collateralToken) internal view returns (uint256) {

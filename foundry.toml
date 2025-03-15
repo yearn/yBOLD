@@ -17,7 +17,4 @@ multiline_func_header = "params_first"
 contract_new_lines = true
 number_underscore = "thousands"
 
-[fuzz]
-max_test_rejects = 1000000000
-
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

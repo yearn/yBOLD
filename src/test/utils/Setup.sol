@@ -27,6 +27,18 @@ interface IFactory {
 
 }
 
+interface AggregatorV3Interface {
+
+    function latestRoundData() external view returns (
+      uint80 roundId,
+      int256 answer,
+      uint256 startedAt,
+      uint256 updatedAt,
+      uint80 answeredInRound
+    );
+
+}
+
 interface IStabilityPool {
 
     function triggerBoldRewards(
@@ -47,6 +59,8 @@ interface IStabilityPool {
         address _depositor
     ) external view returns (uint256);
     function offset(uint256 _debtToOffset, uint256 _collToAdd) external;
+    function provideToSP(uint256 _amount, bool _doClaim) external;
+    function getTotalBoldDeposits() external view returns (uint256);
 
 }
 
@@ -76,6 +90,7 @@ contract Setup is ExtendedTest, IEvents {
 
     // Contract addresses.
     address public stabilityPool = address(0xF69eB8C0d95D4094c16686769460f678727393CF); // WETH Stability Pool
+    address public priceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
 
     // Address of the real deployed Factory
     address public factory;
@@ -84,8 +99,8 @@ contract Setup is ExtendedTest, IEvents {
     uint256 public decimals;
     uint256 public MAX_BPS = 10_000;
 
-    // Fuzz from $0.01 of 1e18 stable coins up to 1 trillion of a 1e18 coin
-    uint256 public maxFuzzAmount = 1_000_000_000_000 ether;
+    // Fuzz from $0.01 of 1e18 stable coins up to 100 billion of a 1e18 coin
+    uint256 public maxFuzzAmount = 100_000_000_000 ether;
     uint256 public minFuzzAmount = 0.01 ether;
 
     // Default profit max unlock time is set for 10 days
@@ -181,14 +196,21 @@ contract Setup is ExtendedTest, IEvents {
         uint256 _collToAdd = _availableCollateral / 10;
         require(_collToAdd >= 1 ether, "simulateCollateralGain: Not enough collateral!");
         uint256 _debtToOffset = _collToAdd * ethPrice() / 1e18;
-        vm.assume(_debtToOffset < 4000 ether); // @todo -- make sure `_debtToOffset < sp deposits`
+        uint256 _totalBoldDeposits = _stabilityPool.getTotalBoldDeposits();
+        if (_debtToOffset > _totalBoldDeposits) {
+            uint256 _amountToDeposit = _debtToOffset - _totalBoldDeposits;
+            address _shrimp = address(420);
+            airdrop(ERC20(tokenAddrs["BOLD"]), _shrimp, _amountToDeposit);
+            vm.prank(_shrimp);
+            _stabilityPool.provideToSP(_amountToDeposit, true);
+        }
         vm.prank(_stabilityPool.troveManager());
         _stabilityPool.offset(_debtToOffset, _collToAdd);
     }
 
-    // @todo -- get price from chainlink
-    function ethPrice() public pure returns (uint256) {
-        return 1800 ether;
+    function ethPrice() public view returns (uint256) {
+        (, int256 price,,,) = AggregatorV3Interface(priceOracle).latestRoundData();
+        return uint256(price);
     }
 
     function setFees(uint16 _protocolFee, uint16 _performanceFee) public {
