@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.8.18;
+pragma solidity 0.8.23;
 
 import {AprOracleBase} from "@periphery/AprOracle/AprOracleBase.sol";
 
@@ -62,6 +62,7 @@ contract StrategyAprOracle is AprOracleBase {
             _count
         );
 
+        // slither-disable-start uninitialized-local
         uint256 _totalDebt;
         uint256 _weightedInterestRate;
         for (uint256 i = 0; i < _count; ++i) {
@@ -78,6 +79,7 @@ contract StrategyAprOracle is AprOracleBase {
         if (_stabilityPoolDeposits == 0) return 0;
         if (_delta < 0) require(uint256(_delta * -1) < _stabilityPoolDeposits, "!delta");
 
+        // slither-disable-next-line divide-before-multiply
         return _weightedInterestRate * 365 days / _totalDebt * _totalDebt
             / uint256(int256(_stabilityPoolDeposits) + _delta);
     }
