@@ -15,11 +15,14 @@ jobs:
 
       - name: Remove Foundry Cache
         run: rm -rf ~/.foundry /opt/foundry
+      
+      - name: Manually Install Foundry
+        run: curl -L https://foundry.paradigm.xyz | bash
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: stable
+      # - name: Install Foundry
+      #   uses: foundry-rs/foundry-toolchain@v1
+      #   with:
+      #     version: stable
 
       - name: Slither analysis
         uses: crytic/slither-action@v0.3.0
