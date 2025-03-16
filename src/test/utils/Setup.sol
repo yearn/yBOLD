@@ -89,6 +89,8 @@ contract Setup is ExtendedTest, IEvents {
     address public emergencyAdmin = address(5);
 
     // Contract addresses.
+    address public multiTroveGetter = address(0xA4a99F8332527A799AC46F616942dBD0d270fC41);
+    address public collateralRegistry = address(0xd99dE73b95236F69A559117ECD6F519Af780F3f7);
     address public stabilityPool = address(0xF69eB8C0d95D4094c16686769460f678727393CF); // WETH Stability Pool
     address public priceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
 

@@ -14,6 +14,7 @@ interface IStabilityPool {
     function getDepositorCollGain(
         address _depositor
     ) external view returns (uint256);
+    function getTotalBoldDeposits() external view returns (uint256);
     function provideToSP(uint256 _amount, bool _doClaim) external;
     function withdrawFromSP(uint256 _amount, bool doClaim) external;
 
