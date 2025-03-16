@@ -2,6 +2,7 @@
 pragma solidity 0.8.23;
 
 interface IMultiTroveGetter {
+
     struct CombinedTroveData {
         uint256 id;
         uint256 debt;
@@ -17,8 +18,10 @@ interface IMultiTroveGetter {
         uint256 snapshotBoldDebt;
     }
 
-    function getMultipleSortedTroves(uint256 _collIndex, int256 _startIdx, uint256 _count)
-        external
-        view
-        returns (CombinedTroveData[] memory _troves);
+    function getMultipleSortedTroves(
+        uint256 _collIndex,
+        int256 _startIdx,
+        uint256 _count
+    ) external view returns (CombinedTroveData[] memory _troves);
+
 }

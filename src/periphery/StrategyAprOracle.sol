@@ -21,7 +21,10 @@ contract StrategyAprOracle is AprOracleBase {
     // Constructor
     // ===============================================================
 
-    constructor(address _multiTroveGetter, address _collateralRegistry) AprOracleBase("Strategy Apr Oracle Example", msg.sender) {
+    constructor(
+        address _multiTroveGetter,
+        address _collateralRegistry
+    ) AprOracleBase("Strategy Apr Oracle Example", msg.sender) {
         MULTI_TROVE_GETTER = IMultiTroveGetter(_multiTroveGetter);
         COLLATERAL_REGISTRY = ICollateralRegistry(_collateralRegistry);
     }
@@ -75,16 +78,21 @@ contract StrategyAprOracle is AprOracleBase {
         if (_stabilityPoolDeposits == 0) return 0;
         if (_delta < 0) require(uint256(_delta * -1) < _stabilityPoolDeposits, "!delta");
 
-        return _weightedInterestRate * 365 days / _totalDebt * _totalDebt / uint256(int256(_stabilityPoolDeposits) + _delta);
+        return _weightedInterestRate * 365 days / _totalDebt * _totalDebt
+            / uint256(int256(_stabilityPoolDeposits) + _delta);
     }
 
     // ===============================================================
     // Internal functions
     // ===============================================================
 
-    function _getCollateralIndex(address _collateralToken) internal view returns (uint256) {
+    function _getCollateralIndex(
+        address _collateralToken
+    ) internal view returns (uint256) {
         uint256 _length = COLLATERAL_REGISTRY.totalCollaterals();
-        for (uint256 i = 0; i < _length; ++i) if (COLLATERAL_REGISTRY.getToken(i) == _collateralToken) return i;
+        for (uint256 i = 0; i < _length; ++i) {
+            if (COLLATERAL_REGISTRY.getToken(i) == _collateralToken) return i;
+        }
         revert("!_collateralToken");
     }
 
