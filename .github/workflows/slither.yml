@@ -16,7 +16,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Slither analysis
         uses: crytic/slither-action@v0.3.0
