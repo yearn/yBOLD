@@ -13,12 +13,6 @@ jobs:
         with:
           submodules: recursive
 
-      # - name: Remove Foundry Cache
-      #   run: rm -rf ~/.foundry /opt/foundry
-      
-      # - name: Manually Install Foundry
-      #   run: curl -L https://foundry.paradigm.xyz | bash
-
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
@@ -26,5 +20,5 @@ jobs:
 
       - name: Slither analysis
         uses: crytic/slither-action@v0.3.0
-        # with:
-        #   fail-on: 'medium'
+        with:
+          fail-on: 'medium'
