@@ -15,23 +15,23 @@ contract SPCompounderStrategy is BaseHealthCheck {
     // Storage
     // ===============================================================
 
-    /// @notice The max the base fee (in gwei) will be for a tend
+    /// @notice Max the base fee (in gwei) will be for a tend
     uint256 public maxGasPriceToTend;
 
-    /// @notice The auction contract for selling the collateral token
+    /// @notice Auction contract for selling the collateral reward token
     IAuction public auction;
 
     // ===============================================================
     // Constants
     // ===============================================================
 
-    /// @notice The collateral token of the Stability Pool
+    /// @notice Collateral reward token of the Stability Pool
     ERC20 public immutable COLL;
 
-    /// @notice The Stability Pool contract
+    /// @notice Stability Pool contract
     IStabilityPool public immutable SP;
 
-    /// @notice The dust threshold for the strategy. Any amount below this will be ignored
+    /// @notice Dust threshold for the strategy. Any amount below this will not be deployed at a harvest
     uint256 private constant DUST_THRESHOLD = 10_000;
 
     // ===============================================================
@@ -78,7 +78,7 @@ contract SPCompounderStrategy is BaseHealthCheck {
     // ===============================================================
 
     /// @notice Set the auction contract
-    /// @param _auction The new auction contract
+    /// @param _auction New auction contract
     function setAuction(
         IAuction _auction
     ) external onlyManagement {
@@ -150,8 +150,7 @@ contract SPCompounderStrategy is BaseHealthCheck {
     function _emergencyWithdraw(
         uint256 /*_amount*/
     ) internal override {
-        // Pull full amount and claim collateral/yield gains. Stability pool scales down to actual balance for us
-        _freeFunds(type(uint256).max);
+        _freeFunds(type(uint256).max); // Stability pool scales down to actual balance for us
     }
 
     /// @inheritdoc BaseStrategy

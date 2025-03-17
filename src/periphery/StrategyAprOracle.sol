@@ -11,22 +11,51 @@ import {ICollateralRegistry} from "../interfaces/ICollateralRegistry.sol";
 contract StrategyAprOracle is AprOracleBase {
 
     // ===============================================================
+    // Storage
+    // ===============================================================
+
+    /// @notice Collateral index to bias mapping
+    mapping(uint256 collateralIndex => uint256 bias) public collateralBias;
+
+    // ===============================================================
     // Constants
     // ===============================================================
 
+    /// @notice Precision for the bias
+    uint256 public constant PRECISION = 1e18;
+
+    /// @notice MultiTroveGetter contract
     IMultiTroveGetter public immutable MULTI_TROVE_GETTER;
+
+    /// @notice CollateralRegistry contract
     ICollateralRegistry public immutable COLLATERAL_REGISTRY;
 
     // ===============================================================
     // Constructor
     // ===============================================================
 
+    /// @param _governance Address of the Governance contract
+    /// @param _multiTroveGetter Address of the MultiTroveGetter contract
+    /// @param _collateralRegistry Address of the CollateralRegistry contract
     constructor(
+        address _governance,
         address _multiTroveGetter,
         address _collateralRegistry
-    ) AprOracleBase("Strategy Apr Oracle Example", msg.sender) {
+    ) AprOracleBase("Liquity V2 Strategy APR Oracle", _governance) {
         MULTI_TROVE_GETTER = IMultiTroveGetter(_multiTroveGetter);
         COLLATERAL_REGISTRY = ICollateralRegistry(_collateralRegistry);
+    }
+
+    // ===============================================================
+    // Governance functions
+    // ===============================================================
+
+    /// @notice Sets the bias for a specific collateral type
+    /// @param _collateralIndex The collateral index
+    /// @param _bias The bias multiplier (e.g., 1e18 = no bias, 1.2e18 = 20% increase)
+    function setCollateralVolatilityBias(uint256 _collateralIndex, uint256 _bias) external onlyGovernance {
+        require(_bias >= 1e18, "!_bias");
+        collateralBias[_collateralIndex] = _bias;
     }
 
     // ===============================================================
@@ -79,9 +108,12 @@ contract StrategyAprOracle is AprOracleBase {
         if (_stabilityPoolDeposits == 0) return 0;
         if (_delta < 0) require(uint256(_delta * -1) < _stabilityPoolDeposits, "!delta");
 
+        uint256 _bias = collateralBias[_collateralIndex];
+        if (_bias == 0) _bias = PRECISION; // Default to no bias
+
         // slither-disable-next-line divide-before-multiply
         return _weightedInterestRate * 365 days / _totalDebt * _totalDebt
-            / uint256(int256(_stabilityPoolDeposits) + _delta);
+            / uint256(int256(_stabilityPoolDeposits) + _delta) * _bias / PRECISION;
     }
 
     // ===============================================================

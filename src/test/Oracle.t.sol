@@ -11,7 +11,7 @@ contract OracleTest is Setup {
 
     function setUp() public override {
         super.setUp();
-        oracle = new StrategyAprOracle(multiTroveGetter, collateralRegistry);
+        oracle = new StrategyAprOracle(management, multiTroveGetter, collateralRegistry);
     }
 
     function checkOracle(address _strategy, uint256 _delta) public {
