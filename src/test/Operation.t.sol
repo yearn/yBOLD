@@ -184,17 +184,17 @@ contract OperationTest is Setup {
         uint256 _estimatedTotalAssetsBefore = strategy.estimatedTotalAssets();
 
         (bool trigger,) = strategy.tendTrigger();
-        assertFalse(trigger, "test_tendAfterCollateralGain: E0");
-        assertFalse(strategy.isCollateralGainToClaim(), "test_tendAfterCollateralGain: E1");
+        assertFalse(trigger);
+        assertFalse(strategy.isCollateralGainToClaim());
 
         // Earn Collateral, lose principal
         simulateCollateralGain();
 
-        assertLt(strategy.estimatedTotalAssets(), _estimatedTotalAssetsBefore, "test_tendAfterCollateralGain: E2");
-        assertTrue(strategy.isCollateralGainToClaim(), "test_tendAfterCollateralGain: E3");
+        assertLt(strategy.estimatedTotalAssets(), _estimatedTotalAssetsBefore);
+        assertTrue(strategy.isCollateralGainToClaim());
 
         (trigger,) = strategy.tendTrigger();
-        assertTrue(trigger, "test_tendAfterCollateralGain: E4");
+        assertTrue(trigger);
 
         // Reporting should fail until we swap the collateral gain
         vm.prank(keeper);
@@ -203,21 +203,17 @@ contract OperationTest is Setup {
 
         IStabilityPool _stabilityPool = IStabilityPool(strategy.SP());
         uint256 _expectedCollateralGain = _stabilityPool.getDepositorCollGain(address(strategy));
-        assertEq(ERC20(strategy.COLL()).balanceOf(address(strategy)), 0, "test_tendAfterCollateralGain: E5");
+        assertEq(ERC20(strategy.COLL()).balanceOf(address(strategy)), 0);
 
         // Claim collateral gain
         vm.prank(keeper);
         strategy.tend();
 
-        assertEq(
-            ERC20(strategy.COLL()).balanceOf(address(strategy)),
-            _expectedCollateralGain,
-            "test_tendAfterCollateralGain: E6"
-        );
-        assertEq(_stabilityPool.getDepositorCollGain(address(strategy)), 0, "test_tendAfterCollateralGain: E7");
+        assertEq(ERC20(strategy.COLL()).balanceOf(address(strategy)), _expectedCollateralGain);
+        assertEq(_stabilityPool.getDepositorCollGain(address(strategy)), 0);
 
         (trigger,) = strategy.tendTrigger();
-        assertFalse(trigger, "test_tendAfterCollateralGain: E8");
+        assertFalse(trigger);
 
         // Simulate swap collateral gain
         vm.prank(management);
@@ -233,9 +229,9 @@ contract OperationTest is Setup {
         vm.prank(keeper);
         (uint256 profit, uint256 loss) = strategy.report();
 
-        assertGt(profit, 0, "test_tendAfterCollateralGain: E9");
-        assertEq(loss, 0, "test_tendAfterCollateralGain: E10");
-        assertGt(strategy.estimatedTotalAssets(), _estimatedTotalAssetsBefore, "test_tendAfterCollateralGain: E11");
+        assertGt(profit, 0);
+        assertEq(loss, 0);
+        assertGt(strategy.estimatedTotalAssets(), _estimatedTotalAssetsBefore);
     }
 
 }

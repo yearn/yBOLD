@@ -9,6 +9,9 @@ import {AuctionMock} from "../mocks/AuctionMock.sol";
 import {LiquityV2SPStrategy as Strategy, ERC20} from "../../Strategy.sol";
 import {StrategyFactory} from "../../StrategyFactory.sol";
 import {IStrategyInterface} from "../../interfaces/IStrategyInterface.sol";
+import {AggregatorV3Interface} from "../../interfaces/AggregatorV3Interface.sol";
+import {IStabilityPool} from "../../interfaces/IStabilityPool.sol";
+import {IActivePool} from "../../interfaces/IActivePool.sol";
 
 // Inherit the events so they can be checked if desired.
 import {IEvents} from "@tokenized-strategy/interfaces/IEvents.sol";
@@ -24,46 +27,6 @@ interface IFactory {
     function set_protocol_fee_recipient(
         address
     ) external;
-
-}
-
-interface AggregatorV3Interface {
-
-    function latestRoundData()
-        external
-        view
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
-
-}
-
-interface IStabilityPool {
-
-    function triggerBoldRewards(
-        uint256 _boldYield
-    ) external;
-    function activePool() external view returns (address);
-    function troveManager() external view returns (address);
-    function getDepositorYieldGain(
-        address _depositor
-    ) external view returns (uint256);
-    function getDepositorYieldGainWithPending(
-        address _depositor
-    ) external view returns (uint256);
-    function getCompoundedBoldDeposit(
-        address _depositor
-    ) external view returns (uint256);
-    function getDepositorCollGain(
-        address _depositor
-    ) external view returns (uint256);
-    function offset(uint256 _debtToOffset, uint256 _collToAdd) external;
-    function provideToSP(uint256 _amount, bool _doClaim) external;
-    function getTotalBoldDeposits() external view returns (uint256);
-
-}
-
-interface IActivePool {
-
-    function getCollBalance() external view returns (uint256);
 
 }
 
@@ -203,7 +166,7 @@ contract Setup is ExtendedTest, IEvents {
             vm.prank(_shrimp);
             _stabilityPool.provideToSP(_amountToDeposit, true);
         }
-        vm.prank(_stabilityPool.troveManager());
+        vm.prank(address(_stabilityPool.troveManager()));
         _stabilityPool.offset(_debtToOffset, _collToAdd);
     }
 

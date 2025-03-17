@@ -15,7 +15,18 @@ interface IStabilityPool {
         address _depositor
     ) external view returns (uint256);
     function getTotalBoldDeposits() external view returns (uint256);
+    function activePool() external view returns (address);
+    function getDepositorYieldGain(
+        address _depositor
+    ) external view returns (uint256);
+    function getDepositorYieldGainWithPending(
+        address _depositor
+    ) external view returns (uint256);
     function provideToSP(uint256 _amount, bool _doClaim) external;
     function withdrawFromSP(uint256 _amount, bool doClaim) external;
+    function triggerBoldRewards(
+        uint256 _boldYield
+    ) external;
+    function offset(uint256 _debtToOffset, uint256 _collToAdd) external;
 
 }
