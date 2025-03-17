@@ -109,7 +109,7 @@ contract StrategyAprOracle is AprOracleBase {
         if (_delta < 0) require(uint256(_delta * -1) < _stabilityPoolDeposits, "!delta");
 
         uint256 _bias = collateralBias[_collateralIndex];
-        if (_bias == 0) _bias = PRECISION; // Default to no bias
+        if (_bias == 0) _bias = PRECISION;
 
         // slither-disable-next-line divide-before-multiply
         return _weightedInterestRate * 365 days / _totalDebt * _totalDebt
