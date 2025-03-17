@@ -15,7 +15,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     // Storage
     // ===============================================================
 
-    /// @notice Max the base fee (in gwei) will be for a tend
+    /// @notice Max base fee (in gwei) for a tend
     uint256 public maxGasPriceToTend;
 
     /// @notice Auction contract for selling the collateral reward token
@@ -25,7 +25,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     // Constants
     // ===============================================================
 
-    /// @notice Dust threshold for the strategy. Any amount below this will not be deployed at a harvest
+    /// @notice Any amount below this will not be deployed at a harvest
     uint256 private constant DUST_THRESHOLD = 10_000;
 
     /// @notice Collateral reward token of the Stability Pool
