@@ -25,14 +25,14 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     // Constants
     // ===============================================================
 
+    /// @notice Dust threshold for the strategy. Any amount below this will not be deployed at a harvest
+    uint256 private constant DUST_THRESHOLD = 10_000;
+
     /// @notice Collateral reward token of the Stability Pool
     ERC20 public immutable COLL;
 
     /// @notice Stability Pool contract
     IStabilityPool public immutable SP;
-
-    /// @notice Dust threshold for the strategy. Any amount below this will not be deployed at a harvest
-    uint256 private constant DUST_THRESHOLD = 10_000;
 
     // ===============================================================
     // Constructor
