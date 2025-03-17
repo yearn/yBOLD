@@ -53,7 +53,7 @@ contract StrategyAprOracle is AprOracleBase {
     /// @notice Sets the bias for a specific collateral type
     /// @param _collateralIndex The collateral index
     /// @param _bias The bias multiplier (e.g., 1e18 = no bias, 1.2e18 = 20% increase)
-    function setCollateralVolatilityBias(uint256 _collateralIndex, uint256 _bias) external onlyGovernance {
+    function setCollateralBias(uint256 _collateralIndex, uint256 _bias) external onlyGovernance {
         require(_bias >= 1e18, "!_bias");
         collateralBias[_collateralIndex] = _bias;
     }

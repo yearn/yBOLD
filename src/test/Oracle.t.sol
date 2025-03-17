@@ -17,14 +17,14 @@ contract OracleTest is Setup {
     function checkOracle(address _strategy, uint256 _delta) public {
         // Check set up
         vm.expectRevert("!governance");
-        oracle.setCollateralVolatilityBias(0, 1e18);
+        oracle.setCollateralBias(0, 1e18);
 
         vm.expectRevert("!_bias");
         vm.prank(management);
-        oracle.setCollateralVolatilityBias(0, 1e18 - 1);
+        oracle.setCollateralBias(0, 1e18 - 1);
 
         vm.prank(management);
-        oracle.setCollateralVolatilityBias(0, 1e18);
+        oracle.setCollateralBias(0, 1e18);
 
         assertEq(oracle.collateralBias(0), 1e18);
         assertEq(address(oracle.MULTI_TROVE_GETTER()), multiTroveGetter);
@@ -48,7 +48,7 @@ contract OracleTest is Setup {
 
         // Set bias to 20% increase
         vm.prank(management);
-        oracle.setCollateralVolatilityBias(0, 1.2e18);
+        oracle.setCollateralBias(0, 1.2e18);
 
         // Reported APR should increase by 20% of bias is 1.2e18
         uint256 biasApr = oracle.aprAfterDebtChange(_strategy, 0); // TODO -- get the collateral index dynamically
