@@ -6,7 +6,7 @@ import {ExtendedTest} from "./ExtendedTest.sol";
 
 import {AuctionMock} from "../mocks/AuctionMock.sol";
 
-import {SPCompounderStrategy as Strategy, ERC20} from "../../Strategy.sol";
+import {LiquityV2SPStrategy as Strategy, ERC20} from "../../Strategy.sol";
 import {StrategyFactory} from "../../StrategyFactory.sol";
 import {IStrategyInterface} from "../../interfaces/IStrategyInterface.sol";
 

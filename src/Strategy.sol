@@ -7,7 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IStabilityPool} from "./interfaces/IStabilityPool.sol";
 import {IAuction} from "./interfaces/IAuction.sol";
 
-contract SPCompounderStrategy is BaseHealthCheck {
+contract LiquityV2SPStrategy is BaseHealthCheck {
 
     using SafeERC20 for ERC20;
 

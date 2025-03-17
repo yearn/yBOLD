@@ -41,7 +41,7 @@ contract StrategyAprOracle is AprOracleBase {
         address _governance,
         address _multiTroveGetter,
         address _collateralRegistry
-    ) AprOracleBase("Liquity V2 Strategy APR Oracle", _governance) {
+    ) AprOracleBase("Liquity V2 SP Strategy APR Oracle", _governance) {
         MULTI_TROVE_GETTER = IMultiTroveGetter(_multiTroveGetter);
         COLLATERAL_REGISTRY = ICollateralRegistry(_collateralRegistry);
     }
