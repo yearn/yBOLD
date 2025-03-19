@@ -119,7 +119,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     }
 
     // ===============================================================
-    // Internal Mutated functions
+    // Internal mutated functions
     // ===============================================================
 
     /// @inheritdoc BaseStrategy
