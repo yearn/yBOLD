@@ -56,7 +56,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice Check if there are collateral gains to claim from the Stability Pool
     /// @return True if there are collateral gains to claim
     function isCollateralGainToClaim() public view returns (bool) {
-        return SP.getDepositorCollGain(address(this)) > 0;
+        return SP.getDepositorCollGain(address(this)) > DUST_THRESHOLD;
     }
 
     /// @notice Estimated total assets held by the strategy
