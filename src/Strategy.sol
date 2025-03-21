@@ -138,7 +138,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         (uint256 _price, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
         uint256 _bufferPercentage = bufferPercentage;
         if (_isOracleDown || COLL_PRICE_ORACLE.priceSource() != IPriceFeed.PriceSource.primary) {
-            _bufferPercentage = _bufferPercentage * ORACLE_DOWN_BUFFER_PCT_MULTIPLIER;
+            _bufferPercentage *= ORACLE_DOWN_BUFFER_PCT_MULTIPLIER;
         }
 
         uint256 _available = COLL.balanceOf(address(AUCTION)) + _toAuction;
