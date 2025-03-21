@@ -32,7 +32,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     uint256 private constant WAD = 1e18;
 
     /// @notice Auction starting price buffer percentage increase when the oracle is down
-    uint256 public constant ORACLE_DOWN_BUFFER_PCT_MULTIPLIER = 1000; // 1000x
+    uint256 public constant ORACLE_DOWN_BUFFER_PCT_MULTIPLIER = 1_000; // 1000x
 
     /// @notice Minimum buffer percentage for the auction starting price
     uint256 public constant MIN_BUFFER_PERCENTAGE = WAD + 1e17; // 10%
