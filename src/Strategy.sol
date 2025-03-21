@@ -66,7 +66,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     constructor(address _addressRegistry, address _asset, string memory _name) BaseHealthCheck(_asset, _name) {
         COLL_PRICE_ORACLE = IAddressRegistry(_addressRegistry).priceFeed();
         (, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
-        require(!_isOracleDown, "!oracle");
+        require(!_isOracleDown && COLL_PRICE_ORACLE.priceSource() == IPriceFeed.PriceSource.primary, "!oracle");
 
         SP = IAddressRegistry(_addressRegistry).stabilityPool();
         require(SP.boldToken() == _asset, "!sp");
