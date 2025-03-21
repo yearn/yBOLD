@@ -7,17 +7,25 @@ interface IStrategyInterface is IStrategy {
 
     // Storage
     function maxGasPriceToTend() external view returns (uint256);
-    function auction() external view returns (address);
+    function bufferPercentage() external view returns (uint256);
+    function ORACLE_DOWN_BUFFER_PCT_MULTIPLIER() external view returns (uint256);
+    function MIN_BUFFER_PERCENTAGE() external view returns (uint256);
+    function DUST_THRESHOLD() external view returns (uint256);
     function COLL() external view returns (address);
+    function COLL_PRICE_ORACLE() external view returns (address);
     function SP() external view returns (address);
+    function AUCTION() external view returns (address);
 
     // View
     function isCollateralGainToClaim() external view returns (bool);
     function estimatedTotalAssets() external view returns (uint256);
 
     // Management
-    function setAuction(
-        address _auction
+    function setMaxGasPriceToTend(
+        uint256 _maxGasPriceToTend
+    ) external;
+    function setBufferPercentage(
+        uint256 _bufferPercentage
     ) external;
 
     // Keeper

@@ -3,6 +3,8 @@ pragma solidity ^0.8.18;
 
 import "forge-std/console2.sol";
 import {Setup, ERC20, IStabilityPool} from "./utils/Setup.sol";
+import {IAuction} from "../interfaces/IAuction.sol";
+import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 
 contract OperationTest is Setup {
 
@@ -18,9 +20,11 @@ contract OperationTest is Setup {
         assertEq(strategy.performanceFeeRecipient(), performanceFeeRecipient);
         assertEq(strategy.keeper(), keeper);
         assertEq(strategy.maxGasPriceToTend(), 200 * 1e9);
-        assertEq(strategy.auction(), address(0));
+        assertEq(strategy.bufferPercentage(), 1.1e18);
+        assertTrue(strategy.AUCTION() != address(0));
         assertEq(strategy.COLL(), tokenAddrs["WETH"]);
         assertEq(strategy.SP(), stabilityPool);
+        assertEq(strategy.COLL_PRICE_ORACLE(), collateralPriceOracle);
     }
 
     function test_operation(
@@ -216,10 +220,15 @@ contract OperationTest is Setup {
         assertFalse(trigger);
 
         // Simulate swap collateral gain
-        vm.prank(management);
-        strategy.setAuction(address(auctionMock));
         vm.prank(keeper);
-        strategy.kickAuction();
+        uint256 _availableToAuction = strategy.kickAuction();
+        assertEq(_availableToAuction, _expectedCollateralGain);
+
+        // Check auction starting price
+        (uint256 _price,) = IPriceFeed(strategy.COLL_PRICE_ORACLE()).fetchPrice();
+        uint256 _toAuctionPrice = _availableToAuction * _price / 1e18;
+        uint256 _expectedStartingPrice = _toAuctionPrice * 110 / 100;
+        assertEq(IAuction(strategy.AUCTION()).startingPrice(), _expectedStartingPrice);
 
         // Add 5% bonus
         uint256 _expectedAssetGain = (_expectedCollateralGain * ethPrice() / 1e18) * 105 / 100;
@@ -232,6 +241,52 @@ contract OperationTest is Setup {
         assertGt(profit, 0);
         assertEq(loss, 0);
         assertGt(strategy.estimatedTotalAssets(), _estimatedTotalAssetsBefore);
+    }
+
+    function test_kickAuction_notKeeper(
+        address _notKeeper
+    ) public {
+        vm.assume(_notKeeper != keeper);
+
+        vm.expectRevert("!keeper");
+        vm.prank(_notKeeper);
+        strategy.kickAuction();
+    }
+
+    function test_kickAuction_toAuctionLessThanDustThreshold(
+        uint256 _dust
+    ) public {
+        vm.assume(_dust <= strategy.DUST_THRESHOLD());
+
+        airdrop(asset, address(strategy), _dust);
+
+        vm.expectRevert("!toAuction");
+        vm.prank(keeper);
+        strategy.kickAuction();
+    }
+
+    function test_kickAuction_oracleDown(
+        uint256 _amount
+    ) public {
+        vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
+
+        // Break the oracle
+        skip(10 days);
+        (uint256 _price, bool _isOracleDown) = IPriceFeed(strategy.COLL_PRICE_ORACLE()).fetchPrice();
+        assertTrue(_isOracleDown);
+
+        // Make sure there's something to kick
+        airdrop(ERC20(strategy.COLL()), address(strategy), _amount);
+
+        // Kick auction
+        vm.prank(keeper);
+        uint256 _availableToAuction = strategy.kickAuction();
+        assertEq(_availableToAuction, _amount);
+
+        // Check auction starting price
+        uint256 _toAuctionPrice = _availableToAuction * _price / 1e18;
+        uint256 _expectedStartingPrice = (_toAuctionPrice * (110 * 1000) / 100);
+        assertEq(IAuction(strategy.AUCTION()).startingPrice(), _expectedStartingPrice);
     }
 
 }

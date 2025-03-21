@@ -4,8 +4,6 @@ pragma solidity ^0.8.18;
 import "forge-std/console2.sol";
 import {ExtendedTest} from "./ExtendedTest.sol";
 
-import {AuctionMock} from "../mocks/AuctionMock.sol";
-
 import {LiquityV2SPStrategy as Strategy, ERC20} from "../../Strategy.sol";
 import {StrategyFactory} from "../../StrategyFactory.sol";
 import {IStrategyInterface} from "../../interfaces/IStrategyInterface.sol";
@@ -37,7 +35,6 @@ contract Setup is ExtendedTest, IEvents {
     IStrategyInterface public strategy;
 
     StrategyFactory public strategyFactory;
-    AuctionMock public auctionMock;
 
     mapping(string => address) public tokenAddrs;
 
@@ -51,7 +48,9 @@ contract Setup is ExtendedTest, IEvents {
     // Contract addresses.
     address public multiTroveGetter = address(0xA4a99F8332527A799AC46F616942dBD0d270fC41);
     address public collateralRegistry = address(0xd99dE73b95236F69A559117ECD6F519Af780F3f7);
+    address public addressRegistry = address(0x38e1F07b954cFaB7239D7acab49997FBaAD96476); // WETH Address Registry
     address public stabilityPool = address(0xF69eB8C0d95D4094c16686769460f678727393CF); // WETH Stability Pool
+    address public collateralPriceOracle = address(0x3279e2B49ff60dAFb276FBAFF847383B67a7ec2d); // Liquity WETH Price Oracle
     address public priceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
 
     // Address of the real deployed Factory
@@ -82,8 +81,6 @@ contract Setup is ExtendedTest, IEvents {
         // Deploy strategy and set variables
         strategy = IStrategyInterface(setUpStrategy());
 
-        auctionMock = new AuctionMock(address(asset), address(strategy));
-
         factory = strategy.FACTORY();
 
         // label all the used addresses for traces
@@ -98,7 +95,7 @@ contract Setup is ExtendedTest, IEvents {
     function setUpStrategy() public returns (address) {
         // we save the strategy as a IStrategyInterface to give it the needed interface
         IStrategyInterface _strategy = IStrategyInterface(
-            address(strategyFactory.newStrategy(stabilityPool, address(asset), "Tokenized Strategy"))
+            address(strategyFactory.newStrategy(addressRegistry, address(asset), "Tokenized Strategy"))
         );
 
         vm.prank(management);

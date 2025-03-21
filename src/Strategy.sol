@@ -4,8 +4,11 @@ pragma solidity 0.8.23;
 import {BaseHealthCheck, BaseStrategy, ERC20} from "@periphery/Bases/HealthCheck/BaseHealthCheck.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import {IPriceFeed} from "./interfaces/IPriceFeed.sol";
 import {IStabilityPool} from "./interfaces/IStabilityPool.sol";
 import {IAuction} from "./interfaces/IAuction.sol";
+import {IAuctionFactory} from "./interfaces/IAuctionFactory.sol";
+import {IAddressRegistry} from "./interfaces/IAddressRegistry.sol";
 
 contract LiquityV2SPStrategy is BaseHealthCheck {
 
@@ -18,35 +21,62 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice Max base fee (in gwei) for a tend
     uint256 public maxGasPriceToTend;
 
-    /// @notice Auction contract for selling the collateral reward token
-    IAuction public auction;
+    /// @notice Buffer percentage for the auction starting price
+    uint256 public bufferPercentage;
 
     // ===============================================================
     // Constants
     // ===============================================================
 
-    /// @notice Any amount below this will not be deployed at a harvest
-    uint256 private constant DUST_THRESHOLD = 10_000;
+    /// @notice WAD constant
+    uint256 private constant WAD = 1e18;
+
+    /// @notice Auction starting price buffer percentage increase when the oracle is down
+    uint256 public constant ORACLE_DOWN_BUFFER_PCT_MULTIPLIER = 1000; // 1000x
+
+    /// @notice Minimum buffer percentage for the auction starting price
+    uint256 public constant MIN_BUFFER_PERCENTAGE = WAD + 1e17; // 10%
+
+    /// @notice Any amount below this will be ignored
+    uint256 public constant DUST_THRESHOLD = 10_000;
 
     /// @notice Collateral reward token of the Stability Pool
     ERC20 public immutable COLL;
 
+    /// @notice Liquity's price oracle for the collateral token
+    ///         Assumes the price feed is using 18 decimals
+    IPriceFeed public immutable COLL_PRICE_ORACLE;
+
     /// @notice Stability Pool contract
     IStabilityPool public immutable SP;
+
+    /// @notice Auction contract for selling the collateral reward token
+    IAuction public immutable AUCTION;
+
+    /// @notice Factory for creating the auction contract
+    IAuctionFactory public constant AUCTION_FACTORY = IAuctionFactory(0xCfA510188884F199fcC6e750764FAAbE6e56ec40);
 
     // ===============================================================
     // Constructor
     // ===============================================================
 
-    /// @param _sp Address of the Stability Pool
+    /// @param _addressRegistry Address of the AddressRegistry
     /// @param _asset Address of the strategy's underlying asset
     /// @param _name Name of the strategy
-    constructor(address _sp, address _asset, string memory _name) BaseHealthCheck(_asset, _name) {
-        SP = IStabilityPool(_sp);
+    constructor(address _addressRegistry, address _asset, string memory _name) BaseHealthCheck(_asset, _name) {
+        COLL_PRICE_ORACLE = IAddressRegistry(_addressRegistry).priceFeed();
+        (, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
+        require(!_isOracleDown, "!oracle");
+
+        SP = IAddressRegistry(_addressRegistry).stabilityPool();
         require(SP.boldToken() == _asset, "!sp");
         COLL = ERC20(SP.collToken());
 
+        AUCTION = AUCTION_FACTORY.createNewAuction(_asset);
+        AUCTION.enable(address(COLL));
+
         maxGasPriceToTend = 200 * 1e9;
+        bufferPercentage = MIN_BUFFER_PERCENTAGE;
     }
 
     // ===============================================================
@@ -77,16 +107,6 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     // Management functions
     // ===============================================================
 
-    /// @notice Set the auction contract
-    /// @param _auction New auction contract
-    function setAuction(
-        IAuction _auction
-    ) external onlyManagement {
-        require(_auction.receiver() == address(this), "!receiver");
-        require(_auction.want() == address(asset), "!want");
-        auction = _auction;
-    }
-
     /// @notice Set the maximum gas price for tending
     /// @param _maxGasPriceToTend New maximum gas price
     function setMaxGasPriceToTend(
@@ -95,18 +115,38 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         maxGasPriceToTend = _maxGasPriceToTend;
     }
 
+    /// @notice Set the buffer percentage for the auction starting price
+    /// @param _bufferPercentage New buffer percentage
+    function setBufferPercentage(
+        uint256 _bufferPercentage
+    ) external onlyManagement {
+        require(_bufferPercentage >= MIN_BUFFER_PERCENTAGE, "!minBuffer");
+        bufferPercentage = _bufferPercentage;
+    }
+
     // ===============================================================
     // Keeper functions
     // ===============================================================
 
     /// @notice Kick an auction for the collateral token
+    /// @dev Reverts on `setStartingPrice` if there's an active auction
     /// @return Available amount for bidding on in the auction
     function kickAuction() external onlyKeepers returns (uint256) {
         uint256 _toAuction = COLL.balanceOf(address(this));
-        require(_toAuction > 0, "!toAuction");
-        IAuction _auction = IAuction(auction);
-        COLL.safeTransfer(address(_auction), _toAuction);
-        return _auction.kick(address(COLL));
+        require(_toAuction > DUST_THRESHOLD, "!toAuction");
+
+        (uint256 _price, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
+        uint256 _bufferPercentage = bufferPercentage;
+        if (_isOracleDown || COLL_PRICE_ORACLE.priceSource() != IPriceFeed.PriceSource.primary) {
+            _bufferPercentage = _bufferPercentage * ORACLE_DOWN_BUFFER_PCT_MULTIPLIER;
+        }
+
+        uint256 _available = COLL.balanceOf(address(AUCTION)) + _toAuction;
+        // slither-disable-next-line divide-before-multiply
+        AUCTION.setStartingPrice(_available * _price / WAD * _bufferPercentage / WAD);
+
+        COLL.safeTransfer(address(AUCTION), _toAuction);
+        return AUCTION.kick(address(COLL));
     }
 
     // ===============================================================
