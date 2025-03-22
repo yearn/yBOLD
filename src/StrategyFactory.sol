@@ -26,17 +26,17 @@ contract StrategyFactory {
 
     /**
      * @notice Deploy a new Strategy.
-     * @param _addressRegistry The address of the AddressRegistry.
+     * @param _addressesRegistry The address of the AddressesRegistry.
      * @param _asset The underlying asset for the strategy to use.
      * @return . The address of the new strategy.
      */
     function newStrategy(
-        address _addressRegistry,
+        address _addressesRegistry,
         address _asset,
         string calldata _name
     ) external virtual returns (address) {
         // tokenized strategies available setters.
-        IStrategyInterface _newStrategy = IStrategyInterface(address(new Strategy(_addressRegistry, _asset, _name)));
+        IStrategyInterface _newStrategy = IStrategyInterface(address(new Strategy(_addressesRegistry, _asset, _name)));
 
         _newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 

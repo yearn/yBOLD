@@ -8,7 +8,7 @@ import {IPriceFeed} from "./interfaces/IPriceFeed.sol";
 import {IStabilityPool} from "./interfaces/IStabilityPool.sol";
 import {IAuction} from "./interfaces/IAuction.sol";
 import {IAuctionFactory} from "./interfaces/IAuctionFactory.sol";
-import {IAddressRegistry} from "./interfaces/IAddressRegistry.sol";
+import {IAddressesRegistry} from "./interfaces/IAddressesRegistry.sol";
 
 contract LiquityV2SPStrategy is BaseHealthCheck {
 
@@ -60,15 +60,15 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     // Constructor
     // ===============================================================
 
-    /// @param _addressRegistry Address of the AddressRegistry
+    /// @param _addressesRegistry Address of the AddressesRegistry
     /// @param _asset Address of the strategy's underlying asset
     /// @param _name Name of the strategy
-    constructor(address _addressRegistry, address _asset, string memory _name) BaseHealthCheck(_asset, _name) {
-        COLL_PRICE_ORACLE = IAddressRegistry(_addressRegistry).priceFeed();
+    constructor(address _addressesRegistry, address _asset, string memory _name) BaseHealthCheck(_asset, _name) {
+        COLL_PRICE_ORACLE = IAddressesRegistry(_addressesRegistry).priceFeed();
         (, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
         require(!_isOracleDown && COLL_PRICE_ORACLE.priceSource() == IPriceFeed.PriceSource.primary, "!oracle");
 
-        SP = IAddressRegistry(_addressRegistry).stabilityPool();
+        SP = IAddressesRegistry(_addressesRegistry).stabilityPool();
         require(SP.boldToken() == _asset, "!sp");
         COLL = ERC20(SP.collToken());
 
