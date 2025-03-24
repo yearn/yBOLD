@@ -21,8 +21,8 @@ contract StrategyAprOracle is AprOracleBase {
     // Constants
     // ===============================================================
 
-    /// @notice Precision for the bias
-    uint256 public constant PRECISION = 1e18;
+    /// @notice WAD constant
+    uint256 private constant WAD = 1e18;
 
     /// @notice MultiTroveGetter contract
     IMultiTroveGetter public immutable MULTI_TROVE_GETTER;
@@ -109,11 +109,11 @@ contract StrategyAprOracle is AprOracleBase {
         if (_delta < 0) require(uint256(_delta * -1) < _stabilityPoolDeposits, "!delta");
 
         uint256 _bias = collateralBias[_collateralIndex];
-        if (_bias == 0) _bias = PRECISION;
+        if (_bias == 0) _bias = WAD;
 
         // slither-disable-next-line divide-before-multiply
         return _weightedInterestRate * 365 days / _totalDebt * _totalDebt
-            / uint256(int256(_stabilityPoolDeposits) + _delta) * _bias / PRECISION;
+            / uint256(int256(_stabilityPoolDeposits) + _delta) * _bias / WAD;
     }
 
     // ===============================================================
