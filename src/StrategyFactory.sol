@@ -24,6 +24,11 @@ contract StrategyFactory {
         emergencyAdmin = _emergencyAdmin;
     }
 
+    modifier onlyManagement() {
+        require(msg.sender == management, "!management");
+        _;
+    }
+
     /**
      * @notice Deploy a new Strategy.
      * @param _addressesRegistry The address of the AddressesRegistry.
@@ -34,7 +39,7 @@ contract StrategyFactory {
         address _addressesRegistry,
         address _asset,
         string calldata _name
-    ) external virtual returns (address) {
+    ) external virtual onlyManagement returns (address) {
         // tokenized strategies available setters.
         IStrategyInterface _newStrategy = IStrategyInterface(address(new Strategy(_addressesRegistry, _asset, _name)));
 
@@ -52,8 +57,11 @@ contract StrategyFactory {
         return address(_newStrategy);
     }
 
-    function setAddresses(address _management, address _performanceFeeRecipient, address _keeper) external {
-        require(msg.sender == management, "!management");
+    function setAddresses(
+        address _management,
+        address _performanceFeeRecipient,
+        address _keeper
+    ) external onlyManagement {
         management = _management;
         performanceFeeRecipient = _performanceFeeRecipient;
         keeper = _keeper;
