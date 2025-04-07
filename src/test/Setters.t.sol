@@ -43,4 +43,27 @@ contract SettersTest is Setup {
         strategy.setBufferPercentage(_bufferPercentage);
     }
 
+    function test_SetDustThreshold(
+        uint256 _dustThreshold
+    ) public {
+        vm.assume(_dustThreshold >= strategy.MIN_DUST_THRESHOLD());
+
+        vm.expectRevert("!management");
+        strategy.setDustThreshold(_dustThreshold);
+
+        vm.prank(management);
+        strategy.setDustThreshold(_dustThreshold);
+        assertEq(strategy.dustThreshold(), _dustThreshold);
+    }
+
+    function test_SetDustThreshold_TooLow(
+        uint256 _dustThreshold
+    ) public {
+        vm.assume(_dustThreshold < strategy.MIN_DUST_THRESHOLD());
+
+        vm.expectRevert("!minDust");
+        vm.prank(management);
+        strategy.setDustThreshold(_dustThreshold);
+    }
+
 }

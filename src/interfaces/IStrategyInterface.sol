@@ -8,9 +8,10 @@ interface IStrategyInterface is IStrategy {
     // Storage
     function maxGasPriceToTend() external view returns (uint256);
     function bufferPercentage() external view returns (uint256);
+    function dustThreshold() external view returns (uint256);
     function ORACLE_DOWN_BUFFER_PCT_MULTIPLIER() external view returns (uint256);
     function MIN_BUFFER_PERCENTAGE() external view returns (uint256);
-    function DUST_THRESHOLD() external view returns (uint256);
+    function MIN_DUST_THRESHOLD() external view returns (uint256);
     function COLL() external view returns (address);
     function COLL_PRICE_ORACLE() external view returns (address);
     function SP() external view returns (address);
@@ -26,6 +27,9 @@ interface IStrategyInterface is IStrategy {
     ) external;
     function setBufferPercentage(
         uint256 _bufferPercentage
+    ) external;
+    function setDustThreshold(
+        uint256 _dustThreshold
     ) external;
 
     // Keeper

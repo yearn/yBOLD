@@ -24,6 +24,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice Buffer percentage for the auction starting price
     uint256 public bufferPercentage;
 
+    /// @notice Any amount below this will be ignored
+    uint256 public dustThreshold;
+
     // ===============================================================
     // Constants
     // ===============================================================
@@ -37,8 +40,8 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice Minimum buffer percentage for the auction starting price
     uint256 public constant MIN_BUFFER_PERCENTAGE = WAD + 1e17; // 10%
 
-    /// @notice Any amount below this will be ignored
-    uint256 public constant DUST_THRESHOLD = 10_000;
+    /// @notice Minimum dust threshold
+    uint256 public constant MIN_DUST_THRESHOLD = 1e15;
 
     /// @notice Collateral reward token of the Stability Pool
     ERC20 public immutable COLL;
@@ -77,6 +80,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
         maxGasPriceToTend = 200 * 1e9;
         bufferPercentage = MIN_BUFFER_PERCENTAGE;
+        dustThreshold = MIN_DUST_THRESHOLD;
     }
 
     // ===============================================================
@@ -86,7 +90,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice Check if there are collateral gains to claim from the Stability Pool
     /// @return True if there are collateral gains to claim
     function isCollateralGainToClaim() public view returns (bool) {
-        return SP.getDepositorCollGain(address(this)) > DUST_THRESHOLD;
+        return SP.getDepositorCollGain(address(this)) > dustThreshold;
     }
 
     /// @notice Estimated total assets held by the strategy
@@ -124,6 +128,15 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         bufferPercentage = _bufferPercentage;
     }
 
+    /// @notice Set the dust threshold for the strategy
+    /// @param _dustThreshold New dust threshold
+    function setDustThreshold(
+        uint256 _dustThreshold
+    ) external onlyManagement {
+        require(_dustThreshold >= MIN_DUST_THRESHOLD, "!minDust");
+        dustThreshold = _dustThreshold;
+    }
+
     // ===============================================================
     // Keeper functions
     // ===============================================================
@@ -133,7 +146,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @return Available amount for bidding on in the auction
     function kickAuction() external onlyKeepers returns (uint256) {
         uint256 _toAuction = COLL.balanceOf(address(this));
-        require(_toAuction > DUST_THRESHOLD, "!toAuction");
+        require(_toAuction > dustThreshold, "!toAuction");
 
         (uint256 _price, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
         uint256 _bufferPercentage = bufferPercentage;
@@ -180,7 +193,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     function _harvestAndReport() internal override returns (uint256 _totalAssets) {
         if (!TokenizedStrategy.isShutdown()) {
             uint256 _toDeploy = asset.balanceOf(address(this));
-            if (_toDeploy > DUST_THRESHOLD) _deployFunds(_toDeploy);
+            if (_toDeploy > dustThreshold) _deployFunds(_toDeploy);
         }
 
         return estimatedTotalAssets();

@@ -246,7 +246,7 @@ contract OperationTest is Setup {
     function test_kickAuction_notKeeper(
         address _notKeeper
     ) public {
-        vm.assume(_notKeeper != keeper);
+        vm.assume(_notKeeper != keeper && _notKeeper != management);
 
         vm.expectRevert("!keeper");
         vm.prank(_notKeeper);
@@ -256,7 +256,7 @@ contract OperationTest is Setup {
     function test_kickAuction_toAuctionLessThanDustThreshold(
         uint256 _dust
     ) public {
-        vm.assume(_dust <= strategy.DUST_THRESHOLD());
+        vm.assume(_dust <= strategy.dustThreshold());
 
         airdrop(asset, address(strategy), _dust);
 
