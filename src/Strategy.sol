@@ -155,7 +155,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
     /// @notice Claim collateral and yield gains from the Stability Pool
     function claim() public {
-        _freeFunds(0);
+        SP.withdrawFromSP(0, true);
     }
 
     // ===============================================================
@@ -166,14 +166,14 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     function _deployFunds(
         uint256 _amount
     ) internal override {
-        SP.provideToSP(_amount, true);
+        SP.provideToSP(_amount, false);
     }
 
     /// @inheritdoc BaseStrategy
     function _freeFunds(
         uint256 _amount
     ) internal override {
-        SP.withdrawFromSP(_amount, true);
+        SP.withdrawFromSP(_amount, false);
     }
 
     /// @inheritdoc BaseStrategy
