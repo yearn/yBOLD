@@ -137,6 +137,18 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         dustThreshold = _dustThreshold;
     }
 
+    /// @notice Sweep stuck tokens
+    /// @dev Cannot sweep strategy asset or collateral token
+    /// @param _token Address of token to sweep
+    function sweep(
+        ERC20 _token
+    ) external onlyManagement {
+        require(_token != asset && _token != COLL, "!token");
+        uint256 _balance = _token.balanceOf(address(this));
+        require(_balance > 0, "!balance");
+        _token.safeTransfer(TokenizedStrategy.management(), _balance);
+    }
+
     // ===============================================================
     // Keeper functions
     // ===============================================================

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity 0.8.23;
 
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IStrategy} from "@tokenized-strategy/interfaces/IStrategy.sol";
 
 interface IStrategyInterface is IStrategy {
@@ -30,6 +31,9 @@ interface IStrategyInterface is IStrategy {
     ) external;
     function setDustThreshold(
         uint256 _dustThreshold
+    ) external;
+    function sweep(
+        ERC20 _token
     ) external;
 
     // Keeper
