@@ -3,6 +3,13 @@ pragma solidity 0.8.23;
 
 interface IAuction {
 
+    function auctionLength() external view returns (uint256);
+    function available(
+        address _token
+    ) external view returns (uint256);
+    function isActive(
+        address _token
+    ) external view returns (bool);
     function startingPrice() external view returns (uint256);
     function kick(
         address _token
@@ -12,6 +19,9 @@ interface IAuction {
     ) external;
     function enable(
         address _from
+    ) external;
+    function settle(
+        address _token
     ) external;
 
 }

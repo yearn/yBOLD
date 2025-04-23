@@ -36,9 +36,6 @@ interface IStrategyInterface is IStrategy {
         ERC20 _token
     ) external;
 
-    // Keeper
-    function kickAuction() external returns (uint256);
-
     // Mutated
     function claim() external;
     function claimNoDeposit() external;

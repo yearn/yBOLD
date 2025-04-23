@@ -150,31 +150,6 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     }
 
     // ===============================================================
-    // Keeper functions
-    // ===============================================================
-
-    /// @notice Kick an auction for the collateral token
-    /// @dev Reverts on `setStartingPrice` if there's an active auction
-    /// @return Available amount for bidding on in the auction
-    function kickAuction() external onlyKeepers returns (uint256) {
-        uint256 _toAuction = COLL.balanceOf(address(this));
-        require(_toAuction > dustThreshold, "!toAuction");
-
-        (uint256 _price, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
-        uint256 _bufferPercentage = bufferPercentage;
-        if (_isOracleDown || COLL_PRICE_ORACLE.priceSource() != IPriceFeed.PriceSource.primary) {
-            _bufferPercentage *= ORACLE_DOWN_BUFFER_PCT_MULTIPLIER;
-        }
-
-        uint256 _available = COLL.balanceOf(address(AUCTION)) + _toAuction;
-        // slither-disable-next-line divide-before-multiply
-        AUCTION.setStartingPrice(_available * _price / WAD * _bufferPercentage / WAD);
-
-        COLL.safeTransfer(address(AUCTION), _toAuction);
-        return AUCTION.kick(address(COLL));
-    }
-
-    // ===============================================================
     // Mutated functions
     // ===============================================================
 
@@ -222,7 +197,24 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     function _tend(
         uint256 /*_totalIdle*/
     ) internal override {
-        claim();
+        if (isCollateralGainToClaim()) claim();
+        if (AUCTION.isActive(address(COLL)) && AUCTION.available(address(COLL)) == 0) AUCTION.settle(address(COLL));
+
+        uint256 _toAuction = COLL.balanceOf(address(this));
+        uint256 _available = COLL.balanceOf(address(AUCTION)) + _toAuction;
+        if (_available > dustThreshold) {
+            (uint256 _price, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
+            uint256 _bufferPercentage = bufferPercentage;
+            if (_isOracleDown || COLL_PRICE_ORACLE.priceSource() != IPriceFeed.PriceSource.primary) {
+                _bufferPercentage *= ORACLE_DOWN_BUFFER_PCT_MULTIPLIER;
+            }
+
+            // slither-disable-next-line divide-before-multiply
+            AUCTION.setStartingPrice(_available * _price / WAD * _bufferPercentage / WAD); // Reverts if there's an active auction
+
+            COLL.safeTransfer(address(AUCTION), _toAuction);
+            AUCTION.kick(address(COLL));
+        }
     }
 
     // ===============================================================
@@ -233,8 +225,12 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     function _tendTrigger() internal view override returns (bool) {
         if (TokenizedStrategy.totalAssets() == 0) return false;
 
-        // Tend to minimize collateral/asset exchange rate exposure
-        return block.basefee <= maxGasPriceToTend && isCollateralGainToClaim();
+        // If active auction, wait
+        if (AUCTION.available(address(COLL)) > 0) return false;
+
+        // If base fee is acceptable and there's collateral to sell, tend to minimize exchange rate exposure
+        return block.basefee <= maxGasPriceToTend
+            && (isCollateralGainToClaim() || COLL.balanceOf(address(this)) > dustThreshold);
     }
 
 }
