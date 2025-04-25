@@ -9,6 +9,8 @@ remappings = [
     "forge-std/=lib/forge-std/src/",
     "@tokenized-strategy/=lib/tokenized-strategy/src/",
     "@periphery/=lib/tokenized-strategy-periphery/src/",
+    "@vault-periphery/=lib/vault-periphery/src/",
+    "@yearn-vaults/=lib/yearn-vaults-v3/contracts/",
 ]
 
 [fmt]
