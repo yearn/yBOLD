@@ -8,6 +8,7 @@ import {Accountant} from "./Accountant.sol";
  * @dev A factory contract for deploying Accountant contracts
  */
 contract AccountantFactory {
+
     event NewAccountant(address indexed newAccountant);
 
     Accountant.Fee public defaultConfig;
@@ -32,17 +33,16 @@ contract AccountantFactory {
      * @return _newAccountant The address of the newly deployed Accountant contract
      */
     function newAccountant() external returns (address) {
-        return
-            newAccountant(
-                msg.sender,
-                msg.sender,
-                defaultConfig.managementFee,
-                defaultConfig.performanceFee,
-                defaultConfig.refundRatio,
-                defaultConfig.maxFee,
-                defaultConfig.maxGain,
-                defaultConfig.maxLoss
-            );
+        return newAccountant(
+            msg.sender,
+            msg.sender,
+            defaultConfig.managementFee,
+            defaultConfig.performanceFee,
+            defaultConfig.refundRatio,
+            defaultConfig.maxFee,
+            defaultConfig.maxGain,
+            defaultConfig.maxLoss
+        );
     }
 
     /**
@@ -51,21 +51,17 @@ contract AccountantFactory {
      * @param feeRecipient The address to receive refund fees
      * @return _newAccountant The address of the newly deployed Accountant contract
      */
-    function newAccountant(
-        address feeManager,
-        address feeRecipient
-    ) external returns (address) {
-        return
-            newAccountant(
-                feeManager,
-                feeRecipient,
-                defaultConfig.managementFee,
-                defaultConfig.performanceFee,
-                defaultConfig.refundRatio,
-                defaultConfig.maxFee,
-                defaultConfig.maxGain,
-                defaultConfig.maxLoss
-            );
+    function newAccountant(address feeManager, address feeRecipient) external returns (address) {
+        return newAccountant(
+            feeManager,
+            feeRecipient,
+            defaultConfig.managementFee,
+            defaultConfig.performanceFee,
+            defaultConfig.refundRatio,
+            defaultConfig.maxFee,
+            defaultConfig.maxGain,
+            defaultConfig.maxLoss
+        );
     }
 
     /**
@@ -86,17 +82,16 @@ contract AccountantFactory {
         uint16 defaultMaxGain,
         uint16 defaultMaxLoss
     ) external returns (address) {
-        return
-            newAccountant(
-                msg.sender,
-                msg.sender,
-                defaultManagement,
-                defaultPerformance,
-                defaultRefund,
-                defaultMaxFee,
-                defaultMaxGain,
-                defaultMaxLoss
-            );
+        return newAccountant(
+            msg.sender,
+            msg.sender,
+            defaultManagement,
+            defaultPerformance,
+            defaultRefund,
+            defaultMaxFee,
+            defaultMaxGain,
+            defaultMaxLoss
+        );
     }
 
     /**
@@ -136,4 +131,5 @@ contract AccountantFactory {
 
         emit NewAccountant(_newAccountant);
     }
+
 }

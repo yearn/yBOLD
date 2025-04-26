@@ -2,9 +2,9 @@
 pragma solidity 0.8.23;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IStrategy} from "@tokenized-strategy/interfaces/IStrategy.sol";
+import {IBaseHealthCheck} from "@periphery/Bases/HealthCheck/IBaseHealthCheck.sol";
 
-interface IStrategyInterface is IStrategy {
+interface IStrategyInterface is IBaseHealthCheck {
 
     // Storage
     function maxGasPriceToTend() external view returns (uint256);

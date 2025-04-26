@@ -6,15 +6,20 @@ import {RoleManager} from "@vault-periphery/managers/RoleManager.sol";
 
 import {Accountant, AccountantFactory} from "../periphery/AccountantFactory.sol";
 
+import {IAuction} from "../interfaces/IAuction.sol";
 import {IGaugeFactory} from "../interfaces/IGaugeFactory.sol";
 
 import "forge-std/console2.sol";
-import {IStrategyInterface, Setup} from "./utils/Setup.sol";
+import {IStabilityPool, IStrategyInterface, ERC20, Setup} from "./utils/Setup.sol";
 
-// @todo -- make sure only vault can deposit (availableDepositLimit?)
-// @todo -- test what happens on loss? -- here
+// @todo -- make sure only vault can deposit (availableDepositLimit? -- use mapping to whitelist depositors)
+// ```
+// if (openDeposits || allowed[receiver]) return uint256Max
+
+// else return 0
+// ```
 // @todo -- st-yBOLD staker
-// @todo -- auto-bribe
+// @todo -- auto-bribe -- DEAD? :(
 contract PonzinomicsNGTest is Setup {
 
     IVault public vault; // yBOLD
@@ -33,28 +38,32 @@ contract PonzinomicsNGTest is Setup {
 
         // Deploy allocator vault
         vm.prank(VAULT_REGISTRY.governance());
-        vault = IVault(VAULT_REGISTRY.newEndorsedVault(
-            address(asset),
-            "Yearn BOLD",
-            "yBOLD",
-            management,
-            0 // profitMaxUnlockTime
-        ));
+        vault = IVault(
+            VAULT_REGISTRY.newEndorsedVault(
+                address(asset),
+                "Yearn BOLD",
+                "yBOLD",
+                management,
+                0 // profitMaxUnlockTime
+            )
+        );
 
         // Deploy accountant factory
         accountantFactory = new AccountantFactory();
 
         // Deploy accountant
-        accountant = Accountant(accountantFactory.newAccountant(
-            management, // feeManager
-            staker, // feeRecipient
-            0, // management fee
-            uint16(MAX_BPS), // performance fee
-            uint16(MAX_BPS), // refund ratio
-            0, // max fee
-            uint16(MAX_BPS), // max gain
-            uint16(MAX_BPS) // max loss
-        ));
+        accountant = Accountant(
+            accountantFactory.newAccountant(
+                management, // feeManager
+                staker, // feeRecipient
+                0, // management fee (disabled)
+                uint16(MAX_BPS), // performance fee (max)
+                uint16(MAX_BPS), // refund ratio (max)
+                0, // max fee (disabled)
+                0, // max gain (disabled)
+                uint16(MAX_BPS) // max loss (disabled)
+            )
+        );
 
         // Set up the vault
         vm.startPrank(management);
@@ -141,6 +150,117 @@ contract PonzinomicsNGTest is Setup {
 
         // Check staker got the rewards
         assertEq(vault.balanceOf(staker), profit, "!staker balance");
+    }
+
+    function test_boldLoss(
+        uint256 _amount
+    ) public {
+        vm.assume(_amount > minFuzzAmount * 10 && _amount < maxFuzzAmount);
+
+        // Deposit into strategy
+        mintAndDepositIntoStrategy(IStrategyInterface(address(vault)), user, _amount);
+
+        assertEq(vault.totalAssets(), _amount, "!totalAssets vault");
+        assertEq(vault.totalSupply(), _amount, "!totalSupply vault");
+        assertEq(strategy.totalAssets(), _amount, "!totalAssets strategy");
+        assertEq(strategy.totalSupply(), _amount, "!totalSupply strategy");
+
+        uint256 pricePerShare = vault.pricePerShare();
+        assertEq(pricePerShare, 1 ether, "!pricePerShare vault");
+
+        pricePerShare = strategy.convertToAssets(1 ether);
+        assertEq(pricePerShare, 1 ether, "!pricePerShare strategy");
+
+        // Earn collateral rewards, but report as a loss
+        simulateCollateralGain();
+
+        // Allow the strategy to report a loss
+        vm.prank(management);
+        strategy.setDoHealthCheck(false);
+
+        // Report loss on strategy
+        vm.prank(keeper);
+        (uint256 profit, uint256 loss) = strategy.report();
+
+        // Check return Values
+        assertEq(profit, 0, "!profit strategy");
+        assertGt(loss, 0, "!loss strategy");
+
+        assertEq(strategy.totalAssets(), _amount - loss, "!totalAssets strategy after");
+        assertEq(strategy.totalSupply(), _amount, "!totalSupply strategy after");
+
+        pricePerShare = strategy.convertToAssets(1 ether);
+        assertLt(pricePerShare, 1 ether, "!pricePerShare strategy after");
+
+        // Report loss on vault
+        vm.prank(keeper);
+        (profit, loss) = vault.process_report(address(strategy));
+
+        // Check return Values
+        assertEq(profit, 0, "!profit vault");
+        assertGt(loss, 0, "!loss vault");
+
+        assertEq(vault.totalAssets(), _amount - loss, "!totalAssets vault after");
+        assertEq(vault.totalSupply(), _amount, "!totalSupply vault after");
+
+        pricePerShare = vault.pricePerShare();
+        assertLt(pricePerShare, 1 ether, "!pricePerShare vault after");
+
+        IStabilityPool _stabilityPool = IStabilityPool(strategy.SP());
+        uint256 _expectedCollateralGain = _stabilityPool.getDepositorCollGain(address(strategy));
+        assertEq(ERC20(strategy.COLL()).balanceOf(address(strategy)), 0);
+
+        // Claim collateral gain and kick auction
+        vm.prank(keeper);
+        strategy.tend();
+
+        assertEq(ERC20(strategy.COLL()).balanceOf(address(strategy)), 0);
+        assertEq(_stabilityPool.getDepositorCollGain(address(strategy)), 0);
+        assertEq(ERC20(strategy.COLL()).balanceOf(strategy.AUCTION()), _expectedCollateralGain);
+
+        // Simulate swap collateral gain
+        vm.prank(keeper);
+        uint256 _availableToAuction = IAuction(strategy.AUCTION()).available(strategy.COLL());
+        assertEq(_availableToAuction, _expectedCollateralGain);
+
+        // Add 5% bonus
+        uint256 _expectedAssetGain = (_expectedCollateralGain * ethPrice() / 1e18) * 105 / 100;
+        airdrop(asset, address(strategy), _expectedAssetGain);
+
+        // Report profit on strategy
+        vm.prank(keeper);
+        (profit, loss) = strategy.report();
+
+        // Check return Values
+        assertGt(profit, 0, "!profit strategy after");
+        assertEq(loss, 0, "!loss strategy after");
+
+        assertGt(strategy.totalAssets(), _amount, "!totalAssets strategy after2");
+        assertEq(strategy.totalSupply(), _amount, "!totalSupply strategy after2");
+
+        pricePerShare = strategy.convertToAssets(1 ether);
+        assertGt(pricePerShare, 1 ether, "!pricePerShare strategy after2");
+
+        // Report profit on vault
+        vm.prank(keeper);
+        (profit, loss) = vault.process_report(address(strategy));
+
+        // Check return Values
+        assertGt(profit, 0, "!profit vault after");
+        assertEq(loss, 0, "!loss vault after");
+
+        assertGt(vault.totalAssets(), _amount, "!totalAssets vault after2");
+        assertGt(vault.totalSupply(), _amount, "!totalSupply vault after2");
+
+        pricePerShare = vault.pricePerShare();
+        assertApproxEqRel(pricePerShare, 1 ether, 1e10, "!pricePerShare vault after2"); // 1e18 == 100%
+
+        // Claim rewards
+        vm.prank(staker);
+        accountant.distribute(address(vault));
+
+        // Check staker got the rewards
+        assertGt(vault.balanceOf(staker), 0, "!staker balance");
     }
 
 }
