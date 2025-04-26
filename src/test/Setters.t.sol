@@ -9,6 +9,16 @@ contract SettersTest is Setup {
         super.setUp();
     }
 
+    function test_AllowDeposits() public {
+        vm.expectRevert("!management");
+        strategy.allowDeposits();
+
+        assertFalse(strategy.openDeposits());
+        vm.prank(management);
+        strategy.allowDeposits();
+        assertTrue(strategy.openDeposits());
+    }
+
     function test_SetMaxGasPriceToTend(
         uint256 _maxGasPriceToTend
     ) public {
@@ -64,6 +74,18 @@ contract SettersTest is Setup {
         vm.expectRevert("!minDust");
         vm.prank(management);
         strategy.setDustThreshold(_dustThreshold);
+    }
+
+    function test_SetAllowed(
+        address _address
+    ) public {
+        vm.expectRevert("!management");
+        strategy.setAllowed(_address);
+
+        assertFalse(strategy.allowed(_address));
+        vm.prank(management);
+        strategy.setAllowed(_address);
+        assertTrue(strategy.allowed(_address));
     }
 
     function test_Sweep(

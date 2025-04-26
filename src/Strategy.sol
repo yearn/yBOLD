@@ -18,6 +18,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     // Storage
     // ===============================================================
 
+    /// @notice Whether deposits are open to everyone
+    bool public openDeposits;
+
     /// @notice Max base fee (in gwei) for a tend
     uint256 public maxGasPriceToTend;
 
@@ -26,6 +29,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
     /// @notice Any amount below this will be ignored
     uint256 public dustThreshold;
+
+    /// @notice Addresses allowed to deposit when openDeposits is false
+    mapping(address => bool) public allowed;
 
     // ===============================================================
     // Constants
@@ -101,6 +107,13 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     }
 
     /// @inheritdoc BaseStrategy
+    function availableDepositLimit(
+        address _owner
+    ) public view override returns (uint256) {
+        return openDeposits || allowed[_owner] ? type(uint256).max : 0;
+    }
+
+    /// @inheritdoc BaseStrategy
     function availableWithdrawLimit(
         address /*_owner*/
     ) public view override returns (uint256) {
@@ -110,6 +123,12 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     // ===============================================================
     // Management functions
     // ===============================================================
+
+    /// @notice Allow anyone to deposit
+    /// @dev This is irreversible
+    function allowDeposits() external onlyManagement {
+        openDeposits = true;
+    }
 
     /// @notice Set the maximum gas price for tending
     /// @param _maxGasPriceToTend New maximum gas price
@@ -135,6 +154,15 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     ) external onlyManagement {
         require(_dustThreshold >= MIN_DUST_THRESHOLD, "!minDust");
         dustThreshold = _dustThreshold;
+    }
+
+    /// @notice Allow a specific address to deposit
+    /// @dev This is irreversible
+    /// @param _address Address to allow
+    function setAllowed(
+        address _address
+    ) external onlyManagement {
+        allowed[_address] = true;
     }
 
     /// @notice Sweep stuck tokens

@@ -11,7 +11,11 @@ contract OracleTest is Setup {
 
     function setUp() public override {
         super.setUp();
+
         oracle = new StrategyAprOracle(management, multiTroveGetter, collateralRegistry);
+
+        vm.prank(management);
+        strategy.allowDeposits();
     }
 
     function checkOracle(address _strategy, uint256 _delta) public {

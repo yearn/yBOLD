@@ -7,9 +7,13 @@ import {IBaseHealthCheck} from "@periphery/Bases/HealthCheck/IBaseHealthCheck.so
 interface IStrategyInterface is IBaseHealthCheck {
 
     // Storage
+    function openDeposits() external view returns (bool);
     function maxGasPriceToTend() external view returns (uint256);
     function bufferPercentage() external view returns (uint256);
     function dustThreshold() external view returns (uint256);
+    function allowed(
+        address _address
+    ) external view returns (bool);
     function ORACLE_DOWN_BUFFER_PCT_MULTIPLIER() external view returns (uint256);
     function MIN_BUFFER_PERCENTAGE() external view returns (uint256);
     function MIN_DUST_THRESHOLD() external view returns (uint256);
@@ -23,6 +27,7 @@ interface IStrategyInterface is IBaseHealthCheck {
     function estimatedTotalAssets() external view returns (uint256);
 
     // Management
+    function allowDeposits() external;
     function setMaxGasPriceToTend(
         uint256 _maxGasPriceToTend
     ) external;
@@ -31,6 +36,9 @@ interface IStrategyInterface is IBaseHealthCheck {
     ) external;
     function setDustThreshold(
         uint256 _dustThreshold
+    ) external;
+    function setAllowed(
+        address _address
     ) external;
     function sweep(
         ERC20 _token

@@ -7,20 +7,12 @@ import {RoleManager} from "@vault-periphery/managers/RoleManager.sol";
 import {Accountant, AccountantFactory} from "../periphery/AccountantFactory.sol";
 
 import {IAuction} from "../interfaces/IAuction.sol";
-import {IGaugeFactory} from "../interfaces/IGaugeFactory.sol";
 
 import "forge-std/console2.sol";
 import {IStabilityPool, IStrategyInterface, ERC20, Setup} from "./utils/Setup.sol";
 
-// @todo -- make sure only vault can deposit (availableDepositLimit? -- use mapping to whitelist depositors)
-// ```
-// if (openDeposits || allowed[receiver]) return uint256Max
-
-// else return 0
-// ```
 // @todo -- st-yBOLD staker
-// @todo -- auto-bribe -- DEAD? :(
-contract PonzinomicsNGTest is Setup {
+contract DualTokenTest is Setup {
 
     IVault public vault; // yBOLD
     Accountant public accountant;
@@ -29,12 +21,9 @@ contract PonzinomicsNGTest is Setup {
 
     RoleManager public constant ROLE_MANAGER = RoleManager(0xb3bd6B2E61753C311EFbCF0111f75D29706D9a41);
     Registry public constant VAULT_REGISTRY = Registry(0xd40ecF29e001c76Dcc4cC0D9cd50520CE845B038);
-    IGaugeFactory public constant VEFUNDER_FACTORY = IGaugeFactory(0x696B5D296a8AeF7482B726FCf0616E32fe72A53d);
 
     function setUp() public override {
         super.setUp();
-
-        // address _gauge = VEFUNDER_FACTORY.deploy_gauge(address(420), type(uint256).max);
 
         // Deploy allocator vault
         vm.prank(VAULT_REGISTRY.governance());
@@ -92,6 +81,10 @@ contract PonzinomicsNGTest is Setup {
         // Remove profitMaxUnlockTime
         vm.prank(management);
         strategy.setProfitMaxUnlockTime(0);
+
+        // Allow deposits from the vault
+        vm.prank(management);
+        strategy.setAllowed(address(vault));
     }
 
     function test_boldProfit(uint256 _amount, uint16 _profitFactor) public {
@@ -261,6 +254,27 @@ contract PonzinomicsNGTest is Setup {
 
         // Check staker got the rewards
         assertGt(vault.balanceOf(staker), 0, "!staker balance");
+    }
+
+    function test_notAllowedCantDeposit(uint256 _amount, address _user) public {
+        vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
+        vm.assume(_user != address(0) && _user != address(vault));
+
+        airdrop(asset, _user, _amount);
+
+        vm.prank(_user);
+        asset.approve(address(strategy), _amount);
+
+        vm.expectRevert("ERC4626: deposit more than max");
+        vm.prank(_user);
+        strategy.deposit(_amount, _user);
+
+        vm.prank(management);
+        strategy.setAllowed(_user);
+
+        vm.prank(_user);
+        strategy.deposit(_amount, _user);
+        assertEq(strategy.totalAssets(), _amount, "!totalAssets");
     }
 
 }
