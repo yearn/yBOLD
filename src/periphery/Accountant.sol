@@ -276,7 +276,10 @@ contract Accountant {
 
         address asset = IVault(vault).asset();
         // Remove any allowances left.
-        if (ERC20(asset).allowance(address(this), vault) != 0) ERC20(asset).safeApprove(vault, 0);
+        if (ERC20(asset).allowance(address(this), vault) != 0) {
+            // slither-disable-next-line reentrancy-no-eth
+            ERC20(asset).safeApprove(vault, 0);
+        }
 
         vaults[vault] = false;
 
