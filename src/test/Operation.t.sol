@@ -17,6 +17,8 @@ contract OperationTest is Setup {
 
     function test_setupStrategyOK() public {
         console2.log("address of strategy", address(strategy));
+        assertEq(strategyFactory.deployments(address(asset), stabilityPool), address(strategy));
+        assertTrue(strategyFactory.isDeployedStrategy(address(strategy)));
         assertTrue(address(0) != address(strategy));
         assertEq(strategy.asset(), address(asset));
         assertEq(strategy.management(), management);

@@ -6,24 +6,30 @@ import {RoleManager} from "@vault-periphery/managers/RoleManager.sol";
 
 import {Accountant, AccountantFactory} from "../periphery/AccountantFactory.sol";
 
+import {LV2SPStakerStrategy as Staker} from "../Staker.sol";
+import {StakerFactory} from "../StakerFactory.sol";
+
 import {IAuction} from "../interfaces/IAuction.sol";
 
 import "forge-std/console2.sol";
 import {IStabilityPool, IStrategyInterface, ERC20, Setup} from "./utils/Setup.sol";
 
-// @todo -- st-yBOLD staker
 contract DualTokenTest is Setup {
 
     IVault public vault; // yBOLD
     Accountant public accountant;
     AccountantFactory public accountantFactory;
-    address public staker = address(6969); // @todo
+    StakerFactory public stakerFactory;
+    IStrategyInterface public staker;
 
     RoleManager public constant ROLE_MANAGER = RoleManager(0xb3bd6B2E61753C311EFbCF0111f75D29706D9a41);
     Registry public constant VAULT_REGISTRY = Registry(0xd40ecF29e001c76Dcc4cC0D9cd50520CE845B038);
 
     function setUp() public override {
         super.setUp();
+
+        // Deploy staker factory
+        stakerFactory = new StakerFactory(management, performanceFeeRecipient, keeper, emergencyAdmin);
 
         // Deploy allocator vault
         vm.prank(VAULT_REGISTRY.governance());
@@ -44,7 +50,7 @@ contract DualTokenTest is Setup {
         accountant = Accountant(
             accountantFactory.newAccountant(
                 management, // feeManager
-                staker, // feeRecipient
+                management, // feeRecipient
                 0, // management fee (disabled)
                 uint16(MAX_BPS), // performance fee (max)
                 uint16(MAX_BPS), // refund ratio (max)
@@ -66,14 +72,19 @@ contract DualTokenTest is Setup {
         vault.transfer_role_manager(address(ROLE_MANAGER));
         vm.stopPrank();
 
+        // Deploy staker
+        staker = IStrategyInterface(stakerFactory.newStrategy(address(vault), "Staked yBOLD Strategy"));
+
         vm.prank(ROLE_MANAGER.chad());
         ROLE_MANAGER.addNewVault(
             address(vault),
             2 // multi strategy
         );
 
-        vm.prank(management);
+        vm.startPrank(management);
         accountant.addVault(address(vault));
+        accountant.setFeeRecipient(address(staker));
+        vm.stopPrank();
 
         // Make sure no fees on the strategy
         setFees(0, 0);
@@ -137,12 +148,20 @@ contract DualTokenTest is Setup {
         pricePerShare = vault.pricePerShare();
         assertEq(pricePerShare, 1 ether, "!pricePerShare vault after");
 
-        // Claim rewards
-        vm.prank(staker);
-        accountant.distribute(address(vault));
+        // Deposit into staker
+        mintAndDepositIntoStrategy(staker, user, _amount);
+
+        // Report profit and claim rewards on staker
+        vm.prank(keeper);
+        (profit, loss) = staker.report();
+
+        // Check return Values
+        assertGt(profit, 0, "!profit staker");
+        assertEq(loss, 0, "!loss staker");
 
         // Check staker got the rewards
-        assertEq(vault.balanceOf(staker), profit, "!staker balance");
+        assertEq(vault.balanceOf(address(staker)), _amount + profit, "!staker balance");
+        assertEq(vault.balanceOf(address(accountant)), 0, "!accountant balance");
     }
 
     function test_boldLoss(
@@ -248,12 +267,20 @@ contract DualTokenTest is Setup {
         pricePerShare = vault.pricePerShare();
         assertApproxEqRel(pricePerShare, 1 ether, 1e10, "!pricePerShare vault after2"); // 1e18 == 100%
 
-        // Claim rewards
-        vm.prank(staker);
-        accountant.distribute(address(vault));
+        // Deposit into staker
+        mintAndDepositIntoStrategy(staker, user, _amount);
+
+        // Report profit and claim rewards on staker
+        vm.prank(keeper);
+        (profit, loss) = staker.report();
+
+        // Check return Values
+        assertGt(profit, 0, "!profit staker");
+        assertEq(loss, 0, "!loss staker");
 
         // Check staker got the rewards
-        assertGt(vault.balanceOf(staker), 0, "!staker balance");
+        assertGt(vault.balanceOf(address(staker)), _amount, "!staker balance");
+        assertEq(vault.balanceOf(address(accountant)), 0, "!accountant balance");
     }
 
     function test_notAllowedCantDeposit(uint256 _amount, address _user) public {
