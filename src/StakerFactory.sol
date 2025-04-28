@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.23;
 
-import {LiquityV2SPStrategy as Strategy} from "./Strategy.sol";
+import {LV2SPStakerStrategy as Strategy} from "./Staker.sol";
 import {IStrategyInterface} from "./interfaces/IStrategyInterface.sol";
 
-contract StrategyFactory {
+contract StakerFactory {
 
     event NewStrategy(address indexed strategy, address indexed asset);
 
@@ -14,8 +14,8 @@ contract StrategyFactory {
     address public performanceFeeRecipient;
     address public keeper;
 
-    /// @notice Track the deployments. asset => stability pool => strategy
-    mapping(address => mapping(address => address)) public deployments;
+    /// @notice Track the deployments. asset => pool => strategy
+    mapping(address => address) public deployments;
 
     constructor(address _management, address _performanceFeeRecipient, address _keeper, address _emergencyAdmin) {
         management = _management;
@@ -24,24 +24,14 @@ contract StrategyFactory {
         emergencyAdmin = _emergencyAdmin;
     }
 
-    modifier onlyManagement() {
-        require(msg.sender == management, "!management");
-        _;
-    }
-
     /**
      * @notice Deploy a new Strategy.
-     * @param _addressesRegistry The address of the AddressesRegistry.
      * @param _asset The underlying asset for the strategy to use.
      * @return . The address of the new strategy.
      */
-    function newStrategy(
-        address _addressesRegistry,
-        address _asset,
-        string calldata _name
-    ) external virtual onlyManagement returns (address) {
+    function newStrategy(address _asset, string calldata _name) external virtual returns (address) {
         // tokenized strategies available setters.
-        IStrategyInterface _newStrategy = IStrategyInterface(address(new Strategy(_addressesRegistry, _asset, _name)));
+        IStrategyInterface _newStrategy = IStrategyInterface(address(new Strategy(_asset, _name)));
 
         _newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 
@@ -53,15 +43,12 @@ contract StrategyFactory {
 
         emit NewStrategy(address(_newStrategy), _asset);
 
-        deployments[_asset][_newStrategy.SP()] = address(_newStrategy);
+        deployments[_asset] = address(_newStrategy);
         return address(_newStrategy);
     }
 
-    function setAddresses(
-        address _management,
-        address _performanceFeeRecipient,
-        address _keeper
-    ) external onlyManagement {
+    function setAddresses(address _management, address _performanceFeeRecipient, address _keeper) external {
+        require(msg.sender == management, "!management");
         management = _management;
         performanceFeeRecipient = _performanceFeeRecipient;
         keeper = _keeper;
@@ -71,8 +58,7 @@ contract StrategyFactory {
         address _strategy
     ) external view returns (bool) {
         address _asset = IStrategyInterface(_strategy).asset();
-        address _stabilityPool = IStrategyInterface(_strategy).SP();
-        return deployments[_asset][_stabilityPool] == _strategy;
+        return deployments[_asset] == _strategy;
     }
 
 }

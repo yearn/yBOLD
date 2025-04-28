@@ -7,6 +7,9 @@ contract ShutdownTest is Setup {
 
     function setUp() public virtual override {
         super.setUp();
+
+        vm.prank(management);
+        strategy.allowDeposits();
     }
 
     function test_shutdownCanWithdraw(

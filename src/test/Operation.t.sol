@@ -10,15 +10,21 @@ contract OperationTest is Setup {
 
     function setUp() public virtual override {
         super.setUp();
+
+        vm.prank(management);
+        strategy.allowDeposits();
     }
 
     function test_setupStrategyOK() public {
         console2.log("address of strategy", address(strategy));
+        assertEq(strategyFactory.deployments(address(asset), stabilityPool), address(strategy));
+        assertTrue(strategyFactory.isDeployedStrategy(address(strategy)));
         assertTrue(address(0) != address(strategy));
         assertEq(strategy.asset(), address(asset));
         assertEq(strategy.management(), management);
         assertEq(strategy.performanceFeeRecipient(), performanceFeeRecipient);
         assertEq(strategy.keeper(), keeper);
+        assertTrue(strategy.openDeposits());
         assertEq(strategy.maxGasPriceToTend(), 200 * 1e9);
         assertEq(strategy.bufferPercentage(), 1.1e18);
         assertTrue(strategy.AUCTION() != address(0));

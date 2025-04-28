@@ -2,14 +2,18 @@
 pragma solidity 0.8.23;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IStrategy} from "@tokenized-strategy/interfaces/IStrategy.sol";
+import {IBaseHealthCheck} from "@periphery/Bases/HealthCheck/IBaseHealthCheck.sol";
 
-interface IStrategyInterface is IStrategy {
+interface IStrategyInterface is IBaseHealthCheck {
 
     // Storage
+    function openDeposits() external view returns (bool);
     function maxGasPriceToTend() external view returns (uint256);
     function bufferPercentage() external view returns (uint256);
     function dustThreshold() external view returns (uint256);
+    function allowed(
+        address _address
+    ) external view returns (bool);
     function ORACLE_DOWN_BUFFER_PCT_MULTIPLIER() external view returns (uint256);
     function MIN_BUFFER_PERCENTAGE() external view returns (uint256);
     function MIN_DUST_THRESHOLD() external view returns (uint256);
@@ -23,6 +27,7 @@ interface IStrategyInterface is IStrategy {
     function estimatedTotalAssets() external view returns (uint256);
 
     // Management
+    function allowDeposits() external;
     function setMaxGasPriceToTend(
         uint256 _maxGasPriceToTend
     ) external;
@@ -31,6 +36,9 @@ interface IStrategyInterface is IStrategy {
     ) external;
     function setDustThreshold(
         uint256 _dustThreshold
+    ) external;
+    function setAllowed(
+        address _address
     ) external;
     function sweep(
         ERC20 _token
