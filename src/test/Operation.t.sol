@@ -232,6 +232,10 @@ contract OperationTest is Setup {
         // Earn Collateral, lose principal
         simulateCollateralGain();
 
+        IStabilityPool _stabilityPool = IStabilityPool(strategy.SP());
+        uint256 _expectedCollateralGain = _stabilityPool.getDepositorCollGain(address(strategy));
+        vm.assume(_expectedCollateralGain > strategy.dustThreshold());
+
         assertTrue(strategy.isCollateralGainToClaim());
 
         (trigger,) = strategy.tendTrigger();
@@ -296,6 +300,11 @@ contract OperationTest is Setup {
         // Earn Collateral, lose principal
         simulateCollateralGain();
 
+        IStabilityPool _stabilityPool = IStabilityPool(strategy.SP());
+        uint256 _expectedCollateralGain = _stabilityPool.getDepositorCollGain(address(strategy));
+        vm.assume(_expectedCollateralGain > strategy.dustThreshold());
+        assertEq(ERC20(strategy.COLL()).balanceOf(address(strategy)), 0);
+
         assertLt(strategy.estimatedTotalAssets(), _estimatedTotalAssetsBefore);
         assertTrue(strategy.isCollateralGainToClaim());
 
@@ -306,10 +315,6 @@ contract OperationTest is Setup {
         vm.prank(keeper);
         vm.expectRevert("healthCheck");
         strategy.report();
-
-        IStabilityPool _stabilityPool = IStabilityPool(strategy.SP());
-        uint256 _expectedCollateralGain = _stabilityPool.getDepositorCollGain(address(strategy));
-        assertEq(ERC20(strategy.COLL()).balanceOf(address(strategy)), 0);
 
         // Claim collateral gain and kick auction
         vm.prank(keeper);

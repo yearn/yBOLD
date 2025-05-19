@@ -39,8 +39,7 @@ contract OracleTest is Setup {
 
         // Should be greater than 0 but likely less than 100%
         assertGt(currentApr, 0, "ZERO");
-        // assertLt(currentApr, 1e18, "+100%");
-        assertLt(currentApr, 1_000_000 * 1e18, "+1M%"); // BOLD's first vulnerable deployment has almost no SP deposits
+        assertLt(currentApr, 1e18, "+100%");
 
         uint256 negativeDebtChangeApr = oracle.aprAfterDebtChange(_strategy, -int256(_delta));
 

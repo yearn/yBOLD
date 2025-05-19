@@ -95,7 +95,7 @@ contract StrategyAprOracle is AprOracleBase {
         uint256 _totalDebt;
         uint256 _weightedInterestRate;
         for (uint256 i = 0; i < _count; ++i) {
-            uint256 _debt = _troves[i].debt;
+            uint256 _debt = _troves[i].entireDebt;
             uint256 _annualInterestRate = _troves[i].annualInterestRate;
             if (_debt == 0 || _annualInterestRate == 0) continue;
             _totalDebt += _debt;
@@ -112,8 +112,8 @@ contract StrategyAprOracle is AprOracleBase {
         if (_bias == 0) _bias = WAD;
 
         // slither-disable-next-line divide-before-multiply
-        return _weightedInterestRate * 365 days / _totalDebt * _totalDebt
-            / uint256(int256(_stabilityPoolDeposits) + _delta) * _bias / WAD;
+        return _weightedInterestRate / _totalDebt * _totalDebt / uint256(int256(_stabilityPoolDeposits) + _delta)
+            * _bias / WAD;
     }
 
     // ===============================================================

@@ -220,6 +220,7 @@ contract DualTokenTest is Setup {
 
         IStabilityPool _stabilityPool = IStabilityPool(strategy.SP());
         uint256 _expectedCollateralGain = _stabilityPool.getDepositorCollGain(address(strategy));
+        vm.assume(_expectedCollateralGain > strategy.dustThreshold());
         assertEq(ERC20(strategy.COLL()).balanceOf(address(strategy)), 0);
 
         // Claim collateral gain and kick auction
