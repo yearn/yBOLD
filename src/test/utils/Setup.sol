@@ -46,11 +46,11 @@ contract Setup is ExtendedTest, IEvents {
     address public emergencyAdmin = address(5);
 
     // Contract addresses.
-    address public multiTroveGetter = address(0xA4a99F8332527A799AC46F616942dBD0d270fC41);
-    address public collateralRegistry = address(0xd99dE73b95236F69A559117ECD6F519Af780F3f7);
-    address public addressesRegistry = address(0x38e1F07b954cFaB7239D7acab49997FBaAD96476); // WETH Address Registry
-    address public stabilityPool = address(0xF69eB8C0d95D4094c16686769460f678727393CF); // WETH Stability Pool
-    address public collateralPriceOracle = address(0x3279e2B49ff60dAFb276FBAFF847383B67a7ec2d); // Liquity WETH Price Oracle
+    address public multiTroveGetter = address(0xFA61dB085510C64B83056Db3A7Acf3b6f631D235);
+    address public collateralRegistry = address(0xf949982B91C8c61e952B3bA942cbbfaef5386684);
+    address public addressesRegistry = address(0x20F7C9ad66983F6523a0881d0f82406541417526); // WETH Address Registry
+    address public stabilityPool = address(0x5721cbbd64fc7Ae3Ef44A0A3F9a790A9264Cf9BF); // WETH Stability Pool
+    address public collateralPriceOracle = address(0xCC5F8102eb670c89a4a3c567C13851260303c24F); // Liquity WETH Price Oracle
     address public priceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
 
     // Address of the real deployed Factory
@@ -68,7 +68,7 @@ contract Setup is ExtendedTest, IEvents {
     uint256 public profitMaxUnlockTime = 10 days;
 
     function setUp() public virtual {
-        uint256 _blockNumber = 22_342_229; // Caching for faster tests
+        uint256 _blockNumber = 22_518_294; // Caching for faster tests
         vm.selectFork(vm.createFork(vm.envString("ETH_RPC_URL"), _blockNumber));
 
         _setTokenAddrs();
@@ -198,7 +198,7 @@ contract Setup is ExtendedTest, IEvents {
         tokenAddrs["USDT"] = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
         tokenAddrs["DAI"] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
         tokenAddrs["USDC"] = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-        tokenAddrs["BOLD"] = 0xb01dd87B29d187F3E3a4Bf6cdAebfb97F3D9aB98;
+        tokenAddrs["BOLD"] = 0x6440f144b7e50D6a8439336510312d2F54beB01D;
     }
 
 }
