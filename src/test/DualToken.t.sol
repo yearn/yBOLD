@@ -148,6 +148,14 @@ contract DualTokenTest is Setup {
         pricePerShare = vault.pricePerShare();
         assertEq(pricePerShare, 1 ether, "!pricePerShare vault after");
 
+        skip(1 days); // Skip some time for tapir
+
+        assertEq(vault.totalAssets(), _amount + profit, "!totalAssets vault after - tapir");
+        assertEq(vault.totalSupply(), _amount + profit, "!totalSupply vault after - tapir");
+
+        pricePerShare = vault.pricePerShare();
+        assertEq(pricePerShare, 1 ether, "!pricePerShare vault after - tapir");
+
         // Deposit into staker
         mintAndDepositIntoStrategy(staker, user, _amount);
 
