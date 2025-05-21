@@ -97,9 +97,6 @@ contract Accountant {
     /// @notice Constant defining the maximum basis points.
     uint256 internal constant MAX_BPS = 10_000;
 
-    /// @notice Constant defining the performance fee.
-    uint16 public constant DEFAULT_PERFORMANCE_FEE = uint16(MAX_BPS); // 100%
-
     /// @notice The amount of max loss to use when redeeming from vaults.
     uint256 public maxLoss;
 
@@ -176,7 +173,8 @@ contract Accountant {
                 require(gain <= (strategyParams.current_debt * (fee.maxGain)) / MAX_BPS, "too much gain");
             }
 
-            totalFees += gain * DEFAULT_PERFORMANCE_FEE / MAX_BPS;
+            // 100% performance fee
+            totalFees = gain;
 
             // Only take fee if there's no loss.
             uint256 supply = vault.totalSupply();
