@@ -108,6 +108,19 @@ contract Setup is ExtendedTest, IEvents {
         return address(_strategy);
     }
 
+    function depositIntoStaker(
+        IStrategyInterface _asset,
+        IStrategyInterface _strategy,
+        address _user,
+        uint256 _amount
+    ) public {
+        vm.prank(_user);
+        _asset.approve(address(_strategy), _amount);
+
+        vm.prank(_user);
+        _strategy.deposit(_amount, _user);
+    }
+
     function depositIntoStrategy(IStrategyInterface _strategy, address _user, uint256 _amount) public {
         vm.prank(_user);
         asset.approve(address(_strategy), _amount);

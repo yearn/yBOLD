@@ -153,7 +153,7 @@ contract DualTokenTest is Setup {
         assertEq(pricePerShare, 1 ether, "!pricePerShare vault after - tapir");
 
         // Deposit into staker
-        mintAndDepositIntoStrategy(staker, user, _amount);
+        depositIntoStaker(IStrategyInterface(address(vault)), staker, user, _amount);
 
         // Report profit and claim rewards on staker
         vm.prank(keeper);
@@ -273,7 +273,7 @@ contract DualTokenTest is Setup {
         assertApproxEq(pricePerShare, 1 ether, 1, "!pricePerShare vault after2");
 
         // Deposit into staker
-        mintAndDepositIntoStrategy(staker, user, _amount);
+        depositIntoStaker(IStrategyInterface(address(vault)), staker, user, _amount);
 
         // Report profit and claim rewards on staker
         vm.prank(keeper);
