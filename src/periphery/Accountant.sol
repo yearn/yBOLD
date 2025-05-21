@@ -208,10 +208,10 @@ contract Accountant {
             totalFees += (gain * (fee.performanceFee)) / MAX_BPS;
 
             // Only take fee if there's no loss.
-            uint256 pricePerShare = vault.pricePerShare();
-            uint256 targetPricePerShare = 10 ** vault.decimals();
-            if (pricePerShare < targetPricePerShare) {
-                uint256 needed = targetPricePerShare - pricePerShare;
+            uint256 supply = vault.totalSupply();
+            uint256 assets = vault.totalAssets();
+            if (assets < supply) {
+                uint256 needed = supply - assets;
                 totalFees = gain < needed ? 0 : gain - needed;
             }
         } else {

@@ -274,7 +274,7 @@ contract DualTokenTest is Setup {
         assertGt(vault.totalSupply(), _amount, "!totalSupply vault after2");
 
         pricePerShare = vault.pricePerShare();
-        assertApproxEqRel(pricePerShare, 1 ether, 1e10, "!pricePerShare vault after2"); // 1e18 == 100%
+        assertApproxEq(pricePerShare, 1 ether, 1, "!pricePerShare vault after2");
 
         // Deposit into staker
         mintAndDepositIntoStrategy(staker, user, _amount);
