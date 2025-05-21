@@ -15,7 +15,6 @@ contract AccountantFactory {
      * @dev Deploys a new Accountant contract with specified fee configurations and addresses
      * @param feeManager The address to receive management and performance fees
      * @param feeRecipient The address to receive refund fees
-     * @param defaultRefund Default refund ratio
      * @param defaultMaxFee Default maximum fee
      * @param defaultMaxGain Default maximum gain
      * @param defaultMaxLoss Default maximum loss
@@ -24,21 +23,12 @@ contract AccountantFactory {
     function newAccountant(
         address feeManager,
         address feeRecipient,
-        uint16 defaultRefund,
         uint16 defaultMaxFee,
         uint16 defaultMaxGain,
         uint16 defaultMaxLoss
     ) public returns (address _newAccountant) {
-        _newAccountant = address(
-            new Accountant(
-                feeManager,
-                feeRecipient,
-                defaultRefund,
-                defaultMaxFee,
-                defaultMaxGain,
-                defaultMaxLoss
-            )
-        );
+        _newAccountant =
+            address(new Accountant(feeManager, feeRecipient, defaultMaxFee, defaultMaxGain, defaultMaxLoss));
 
         emit NewAccountant(_newAccountant);
     }

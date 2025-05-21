@@ -8,7 +8,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 /// @title Accountant.
 /// @notice A custom accountant that (1) hardcodes performance fee to 100% and (2) only takes fee if there's no loss.
-/// @dev Will charge fees, issue refunds, and run health check on any reported
+/// @dev Will charge fees and run health check on any reported
 ///     gains or losses during a strategy's report.
 contract Accountant {
 
@@ -53,7 +53,6 @@ contract Accountant {
 
     /// @notice Struct representing fee details.
     struct Fee {
-        uint16 refundRatio; // Refund ratio to give back on losses.
         uint16 maxFee; // Max fee allowed as a percent of gain.
         uint16 maxGain; // Max percent gain a strategy can report.
         uint16 maxLoss; // Max percent loss a strategy can report.
@@ -132,7 +131,6 @@ contract Accountant {
     constructor(
         address _feeManager,
         address _feeRecipient,
-        uint16 defaultRefund,
         uint16 defaultMaxFee,
         uint16 defaultMaxGain,
         uint16 defaultMaxLoss
@@ -143,7 +141,7 @@ contract Accountant {
         feeManager = _feeManager;
         feeRecipient = _feeRecipient;
 
-        _updateDefaultConfig(defaultRefund, defaultMaxFee, defaultMaxGain, defaultMaxLoss);
+        _updateDefaultConfig(defaultMaxFee, defaultMaxGain, defaultMaxLoss);
     }
 
     /**
@@ -159,7 +157,7 @@ contract Accountant {
         address strategy,
         uint256 gain,
         uint256 loss
-    ) public virtual onlyAddedVaults returns (uint256 totalFees, uint256 totalRefunds) {
+    ) public virtual onlyAddedVaults returns (uint256 totalFees, uint256 /* totalRefunds */ ) {
         // Declare the config to use as the custom.
         Fee memory fee = customConfig[msg.sender];
 
@@ -204,19 +202,6 @@ contract Accountant {
             } else if (fee.maxLoss < MAX_BPS) {
                 require(loss <= (strategyParams.current_debt * (fee.maxLoss)) / MAX_BPS, "too much loss");
             }
-
-            // Means we should have a loss.
-            if (fee.refundRatio > 0) {
-                // Cache the underlying asset the vault uses.
-                address asset = vault.asset();
-                // Give back either all we have or based on the refund ratio.
-                totalRefunds = Math.min((loss * (fee.refundRatio)) / MAX_BPS, ERC20(asset).balanceOf(address(this)));
-
-                if (totalRefunds > 0) {
-                    // Approve the vault to pull the underlying asset.
-                    _checkAllowance(msg.sender, asset, totalRefunds);
-                }
-            }
         }
 
         // 0 Max fee means it is not enforced.
@@ -225,7 +210,7 @@ contract Accountant {
             totalFees = Math.min((gain * (fee.maxFee)) / MAX_BPS, totalFees);
         }
 
-        return (totalFees, totalRefunds);
+        return (totalFees, 0);
     }
 
     /**
@@ -269,18 +254,16 @@ contract Accountant {
     /**
      * @notice Function to update the default fee configuration used for
      *     all strategies that don't have a custom config set.
-     * @param defaultRefund Default refund ratio to give back on losses.
      * @param defaultMaxFee Default max fee to allow as a percent of gain.
      * @param defaultMaxGain Default max percent gain a strategy can report.
      * @param defaultMaxLoss Default max percent loss a strategy can report.
      */
     function updateDefaultConfig(
-        uint16 defaultRefund,
         uint16 defaultMaxFee,
         uint16 defaultMaxGain,
         uint16 defaultMaxLoss
     ) external virtual onlyFeeManager {
-        _updateDefaultConfig(defaultRefund, defaultMaxFee, defaultMaxGain, defaultMaxLoss);
+        _updateDefaultConfig(defaultMaxFee, defaultMaxGain, defaultMaxLoss);
     }
 
     /**
@@ -288,7 +271,6 @@ contract Accountant {
      *   Is used during deployment and during any future updates.
      */
     function _updateDefaultConfig(
-        uint16 defaultRefund,
         uint16 defaultMaxFee,
         uint16 defaultMaxGain,
         uint16 defaultMaxLoss
@@ -297,13 +279,7 @@ contract Accountant {
         require(defaultMaxLoss <= MAX_BPS, "too high");
 
         // Update the default fee configuration.
-        defaultConfig = Fee({
-            refundRatio: defaultRefund,
-            maxFee: defaultMaxFee,
-            maxGain: defaultMaxGain,
-            maxLoss: defaultMaxLoss,
-            custom: false
-        });
+        defaultConfig = Fee({maxFee: defaultMaxFee, maxGain: defaultMaxGain, maxLoss: defaultMaxLoss, custom: false});
 
         emit UpdateDefaultFeeConfig(defaultConfig);
     }
@@ -311,14 +287,12 @@ contract Accountant {
     /**
      * @notice Function to set a custom fee configuration for a specific vault.
      * @param vault The vault the strategy is hooked up to.
-     * @param customRefund Custom refund ratio to give back on losses.
      * @param customMaxFee Custom max fee to allow as a percent of gain.
      * @param customMaxGain Custom max percent gain a strategy can report.
      * @param customMaxLoss Custom max percent loss a strategy can report.
      */
     function setCustomConfig(
         address vault,
-        uint16 customRefund,
         uint16 customMaxFee,
         uint16 customMaxGain,
         uint16 customMaxLoss
@@ -329,13 +303,7 @@ contract Accountant {
         require(customMaxLoss <= MAX_BPS, "too high");
 
         // Create the vault's custom config.
-        Fee memory _config = Fee({
-            refundRatio: customRefund,
-            maxFee: customMaxFee,
-            maxGain: customMaxGain,
-            maxLoss: customMaxLoss,
-            custom: true
-        });
+        Fee memory _config = Fee({maxFee: customMaxFee, maxGain: customMaxGain, maxLoss: customMaxLoss, custom: true});
 
         // Store the config.
         customConfig[vault] = _config;
@@ -513,21 +481,6 @@ contract Accountant {
         feeRecipient = newFeeRecipient;
 
         emit UpdateFeeRecipient(oldRecipient, newFeeRecipient);
-    }
-
-    /**
-     * @dev Internal safe function to make sure the contract you want to
-     * interact with has enough allowance to pull the desired tokens.
-     *
-     * @param _contract The address of the contract that will move the token.
-     * @param _token The ERC-20 token that will be getting spent.
-     * @param _amount The amount of `_token` to be spent.
-     */
-    function _checkAllowance(address _contract, address _token, uint256 _amount) internal {
-        if (ERC20(_token).allowance(address(this), _contract) < _amount) {
-            ERC20(_token).safeApprove(_contract, 0);
-            ERC20(_token).safeApprove(_contract, _amount);
-        }
     }
 
 }
