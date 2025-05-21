@@ -347,26 +347,6 @@ contract Accountant {
     }
 
     /**
-     * @notice Function to redeem the underlying asset from a vault.
-     * @dev Will default to using the full balance of the vault.
-     * @param vault The vault to redeem from.
-     */
-    function redeemUnderlying(
-        address vault
-    ) external virtual {
-        redeemUnderlying(vault, IVault(vault).balanceOf(address(this)));
-    }
-
-    /**
-     * @notice Function to redeem the underlying asset from a vault.
-     * @param vault The vault to redeem from.
-     * @param amount The amount in vault shares to redeem.
-     */
-    function redeemUnderlying(address vault, uint256 amount) public virtual onlyFeeManager {
-        IVault(vault).redeem(amount, address(this), address(this), maxLoss);
-    }
-
-    /**
      * @notice Sets the `maxLoss` parameter to be used on redeems.
      * @param _maxLoss The amount in basis points to set as the maximum loss.
      */
