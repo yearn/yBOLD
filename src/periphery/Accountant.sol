@@ -7,7 +7,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title Accountant.
-/// @notice A custom accountant that (1) allows for 100% performance fees and (2) only takes fee if there's no loss.
+/// @notice A custom accountant that (1) hardcodes performance fee to 100% and (2) only takes fee if there's no loss.
 /// @dev Will charge fees, issue refunds, and run health check on any reported
 ///     gains or losses during a strategy's report.
 contract Accountant {
@@ -53,8 +53,6 @@ contract Accountant {
 
     /// @notice Struct representing fee details.
     struct Fee {
-        uint16 managementFee; // Annual management fee to charge.
-        uint16 performanceFee; // Performance fee to charge.
         uint16 refundRatio; // Refund ratio to give back on losses.
         uint16 maxFee; // Max fee allowed as a percent of gain.
         uint16 maxGain; // Max percent gain a strategy can report.
@@ -101,14 +99,8 @@ contract Accountant {
     /// @notice Constant defining the maximum basis points.
     uint256 internal constant MAX_BPS = 10_000;
 
-    /// @notice Constant defining the number of seconds in a year.
-    uint256 internal constant SECS_PER_YEAR = 31_556_952;
-
-    /// @notice Constant defining the management fee threshold.
-    uint16 public constant MANAGEMENT_FEE_THRESHOLD = 200;
-
-    /// @notice Constant defining the performance fee threshold.
-    uint16 public constant PERFORMANCE_FEE_THRESHOLD = uint16(MAX_BPS);
+    /// @notice Constant defining the performance fee.
+    uint16 public constant DEFAULT_PERFORMANCE_FEE = uint16(MAX_BPS); // 100%
 
     /// @notice The amount of max loss to use when redeeming from vaults.
     uint256 public maxLoss;
@@ -140,8 +132,6 @@ contract Accountant {
     constructor(
         address _feeManager,
         address _feeRecipient,
-        uint16 defaultManagement,
-        uint16 defaultPerformance,
         uint16 defaultRefund,
         uint16 defaultMaxFee,
         uint16 defaultMaxGain,
@@ -153,9 +143,7 @@ contract Accountant {
         feeManager = _feeManager;
         feeRecipient = _feeRecipient;
 
-        _updateDefaultConfig(
-            defaultManagement, defaultPerformance, defaultRefund, defaultMaxFee, defaultMaxGain, defaultMaxLoss
-        );
+        _updateDefaultConfig(defaultRefund, defaultMaxFee, defaultMaxGain, defaultMaxLoss);
     }
 
     /**
@@ -185,14 +173,6 @@ contract Accountant {
         IVault vault = IVault(msg.sender);
         IVault.StrategyParams memory strategyParams = vault.strategies(strategy);
 
-        // Charge management fees no matter gain or loss.
-        if (fee.managementFee > 0) {
-            // Time since the last harvest.
-            uint256 duration = block.timestamp - strategyParams.last_report;
-            // managementFee is an annual amount, so charge based on the time passed.
-            totalFees = ((strategyParams.current_debt * duration * (fee.managementFee)) / MAX_BPS / SECS_PER_YEAR);
-        }
-
         // Only charge performance fees if there is a gain.
         if (gain > 0) {
             // If we are skipping the healthcheck this report
@@ -205,7 +185,7 @@ contract Accountant {
                 require(gain <= (strategyParams.current_debt * (fee.maxGain)) / MAX_BPS, "too much gain");
             }
 
-            totalFees += (gain * (fee.performanceFee)) / MAX_BPS;
+            totalFees += gain * DEFAULT_PERFORMANCE_FEE / MAX_BPS;
 
             // Only take fee if there's no loss.
             uint256 supply = vault.totalSupply();
@@ -289,24 +269,18 @@ contract Accountant {
     /**
      * @notice Function to update the default fee configuration used for
      *     all strategies that don't have a custom config set.
-     * @param defaultManagement Default annual management fee to charge.
-     * @param defaultPerformance Default performance fee to charge.
      * @param defaultRefund Default refund ratio to give back on losses.
      * @param defaultMaxFee Default max fee to allow as a percent of gain.
      * @param defaultMaxGain Default max percent gain a strategy can report.
      * @param defaultMaxLoss Default max percent loss a strategy can report.
      */
     function updateDefaultConfig(
-        uint16 defaultManagement,
-        uint16 defaultPerformance,
         uint16 defaultRefund,
         uint16 defaultMaxFee,
         uint16 defaultMaxGain,
         uint16 defaultMaxLoss
     ) external virtual onlyFeeManager {
-        _updateDefaultConfig(
-            defaultManagement, defaultPerformance, defaultRefund, defaultMaxFee, defaultMaxGain, defaultMaxLoss
-        );
+        _updateDefaultConfig(defaultRefund, defaultMaxFee, defaultMaxGain, defaultMaxLoss);
     }
 
     /**
@@ -314,22 +288,16 @@ contract Accountant {
      *   Is used during deployment and during any future updates.
      */
     function _updateDefaultConfig(
-        uint16 defaultManagement,
-        uint16 defaultPerformance,
         uint16 defaultRefund,
         uint16 defaultMaxFee,
         uint16 defaultMaxGain,
         uint16 defaultMaxLoss
     ) internal virtual {
         // Check for threshold and limit conditions.
-        require(defaultManagement <= MANAGEMENT_FEE_THRESHOLD, "management fee threshold");
-        require(defaultPerformance <= PERFORMANCE_FEE_THRESHOLD, "performance fee threshold");
         require(defaultMaxLoss <= MAX_BPS, "too high");
 
         // Update the default fee configuration.
         defaultConfig = Fee({
-            managementFee: defaultManagement,
-            performanceFee: defaultPerformance,
             refundRatio: defaultRefund,
             maxFee: defaultMaxFee,
             maxGain: defaultMaxGain,
@@ -343,8 +311,6 @@ contract Accountant {
     /**
      * @notice Function to set a custom fee configuration for a specific vault.
      * @param vault The vault the strategy is hooked up to.
-     * @param customManagement Custom annual management fee to charge.
-     * @param customPerformance Custom performance fee to charge.
      * @param customRefund Custom refund ratio to give back on losses.
      * @param customMaxFee Custom max fee to allow as a percent of gain.
      * @param customMaxGain Custom max percent gain a strategy can report.
@@ -352,8 +318,6 @@ contract Accountant {
      */
     function setCustomConfig(
         address vault,
-        uint16 customManagement,
-        uint16 customPerformance,
         uint16 customRefund,
         uint16 customMaxFee,
         uint16 customMaxGain,
@@ -362,14 +326,10 @@ contract Accountant {
         // Ensure the vault has been added.
         require(vaults[vault], "vault not added");
         // Check for threshold and limit conditions.
-        require(customManagement <= MANAGEMENT_FEE_THRESHOLD, "management fee threshold");
-        require(customPerformance <= PERFORMANCE_FEE_THRESHOLD, "performance fee threshold");
         require(customMaxLoss <= MAX_BPS, "too high");
 
         // Create the vault's custom config.
         Fee memory _config = Fee({
-            managementFee: customManagement,
-            performanceFee: customPerformance,
             refundRatio: customRefund,
             maxFee: customMaxFee,
             maxGain: customMaxGain,
