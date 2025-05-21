@@ -51,8 +51,6 @@ contract DualTokenTest is Setup {
             accountantFactory.newAccountant(
                 management, // feeManager
                 management, // feeRecipient
-                // 0, // management fee (disabled)
-                // uint16(MAX_BPS), // performance fee (max)
                 uint16(MAX_BPS), // refund ratio (max)
                 0, // max fee (disabled)
                 0, // max gain (disabled)
