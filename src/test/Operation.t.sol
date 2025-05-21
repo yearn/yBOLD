@@ -335,8 +335,12 @@ contract OperationTest is Setup {
         // Check auction starting price
         (uint256 _price,) = IPriceFeed(strategy.COLL_PRICE_ORACLE()).fetchPrice();
         uint256 _toAuctionPrice = _availableToAuction * _price / 1e18;
-        uint256 _expectedStartingPrice = _toAuctionPrice * 110 / 100;
+        uint256 _expectedStartingPrice = _toAuctionPrice * 110 / 100 / 1e18;
         assertEq(IAuction(strategy.AUCTION()).startingPrice(), _expectedStartingPrice);
+
+        // Check auction price
+        uint256 _expectedPrice = _expectedStartingPrice * 1e36 / _availableToAuction;
+        assertApproxEq(IAuction(strategy.AUCTION()).price(strategy.COLL()), _expectedPrice, 1);
 
         // Add 5% bonus
         uint256 _expectedAssetGain = (_expectedCollateralGain * ethPrice() / 1e18) * 105 / 100;
@@ -464,8 +468,13 @@ contract OperationTest is Setup {
 
         // Check auction starting price
         uint256 _toAuctionPrice = _airdropAmount * _price / 1e18;
-        uint256 _expectedStartingPrice = (_toAuctionPrice * (110 * 1000) / 100);
+        uint256 _expectedStartingPrice = (_toAuctionPrice * (110 * 1000) / 100) / 1e18;
         assertEq(IAuction(strategy.AUCTION()).startingPrice(), _expectedStartingPrice);
+
+        // Check auction price
+        uint256 _availableToAuction = IAuction(strategy.AUCTION()).available(strategy.COLL());
+        uint256 _expectedPrice = _expectedStartingPrice * 1e36 / _availableToAuction;
+        assertApproxEq(IAuction(strategy.AUCTION()).price(strategy.COLL()), _expectedPrice, 1);
     }
 
 }

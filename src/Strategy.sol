@@ -238,7 +238,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
             }
 
             // slither-disable-next-line divide-before-multiply
-            AUCTION.setStartingPrice(_available * _price / WAD * _bufferPercentage / WAD); // Reverts if there's an active auction
+            AUCTION.setStartingPrice(_available * _price / WAD * _bufferPercentage / WAD / WAD); // Reverts if there's an active auction
 
             COLL.safeTransfer(address(AUCTION), _toAuction);
             AUCTION.kick(address(COLL));
