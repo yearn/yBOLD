@@ -112,8 +112,7 @@ contract StrategyAprOracle is AprOracleBase {
         if (_bias == 0) _bias = WAD;
 
         // slither-disable-next-line divide-before-multiply
-        return _weightedInterestRate / _totalDebt * _totalDebt / uint256(int256(_stabilityPoolDeposits) + _delta)
-            * _bias / WAD;
+        return _weightedInterestRate / uint256(int256(_stabilityPoolDeposits) + _delta) * _bias / WAD;
     }
 
     // ===============================================================
