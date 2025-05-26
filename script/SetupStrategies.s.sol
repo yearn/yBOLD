@@ -13,7 +13,7 @@ contract SetupStrategies is Script {
     address[] private strategies = [
         0x2048A730f564246411415f719198d6f7c10A7961, // WETH Strategy
         0x46af61661B1e15DA5bFE40756495b7881F426214, // wstETH Strategy
-        0x2351E217269A4a53a392bffE8195Efa1c502A1D2  // rETH Strategy
+        0x2351E217269A4a53a392bffE8195Efa1c502A1D2 // rETH Strategy
     ];
 
     address private constant VAULT = 0x9F4330700a36B29952869fac9b33f45EEdd8A3d8; // yBOLD
@@ -31,4 +31,5 @@ contract SetupStrategies is Script {
 
         vm.stopBroadcast();
     }
+
 }

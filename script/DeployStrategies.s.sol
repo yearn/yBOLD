@@ -18,13 +18,16 @@ contract DeployStrategies is Script {
         vm.startBroadcast(vm.envUint("DEPLOYER_PRIVATE_KEY"));
 
         address _wethAddressesRegistry = address(0x20F7C9ad66983F6523a0881d0f82406541417526); // WETH Address Registry
-        address _wethStrategy = STRATEGY_FACTORY.newStrategy(_wethAddressesRegistry, ASSET, "Liquity V2 WETH Stability Pool");
+        address _wethStrategy =
+            STRATEGY_FACTORY.newStrategy(_wethAddressesRegistry, ASSET, "Liquity V2 WETH Stability Pool");
 
         address _wstethAddressesRegistry = address(0x8d733F7ea7c23Cbea7C613B6eBd845d46d3aAc54); // wstETH Address Registry
-        address _wstethStrategy = STRATEGY_FACTORY.newStrategy(_wstethAddressesRegistry, ASSET, "Liquity V2 wstETH Stability Pool");
+        address _wstethStrategy =
+            STRATEGY_FACTORY.newStrategy(_wstethAddressesRegistry, ASSET, "Liquity V2 wstETH Stability Pool");
 
         address _rethAddressesRegistry = address(0x6106046F031a22713697e04C08B330dDaf3e8789); // rETH Address Registry
-        address _rethStrategy = STRATEGY_FACTORY.newStrategy(_rethAddressesRegistry, ASSET, "Liquity V2 rETH Stability Pool");
+        address _rethStrategy =
+            STRATEGY_FACTORY.newStrategy(_rethAddressesRegistry, ASSET, "Liquity V2 rETH Stability Pool");
 
         vm.stopBroadcast();
 
@@ -34,10 +37,5 @@ contract DeployStrategies is Script {
         console.log("rETH Strategy deployed at: ", _rethStrategy);
         console.log("-----------------------------");
     }
-}
 
-// -----------------------------
-// WETH Strategy deployed at:  0x2048A730f564246411415f719198d6f7c10A7961
-// wstETH Strategy deployed at:  0x46af61661B1e15DA5bFE40756495b7881F426214
-// rETH Strategy deployed at:  0x2351E217269A4a53a392bffE8195Efa1c502A1D2
-// -----------------------------
+}

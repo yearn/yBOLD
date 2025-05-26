@@ -13,7 +13,7 @@ contract SetupVault is Script {
     address[] private strategies = [
         0x2048A730f564246411415f719198d6f7c10A7961, // WETH Strategy
         0x46af61661B1e15DA5bFE40756495b7881F426214, // wstETH Strategy
-        0x2351E217269A4a53a392bffE8195Efa1c502A1D2  // rETH Strategy
+        0x2351E217269A4a53a392bffE8195Efa1c502A1D2 // rETH Strategy
     ];
 
     address private constant MANAGEMENT = 0x285E3b1E82f74A99D07D2aD25e159E75382bB43B; // deployer
@@ -42,4 +42,5 @@ contract SetupVault is Script {
 
         vm.stopBroadcast();
     }
+
 }

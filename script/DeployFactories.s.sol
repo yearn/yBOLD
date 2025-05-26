@@ -28,7 +28,8 @@ contract DeployFactories is Script {
 
         AccountantFactory _accountantFactory = new AccountantFactory();
         StakerFactory _stakerFactory = new StakerFactory(MANAGEMENT, PERFORMANCE_FEE_RECIPIENT, KEEPER, EMERGENCY_ADMIN);
-        StrategyFactory _strategyFactory = new StrategyFactory(MANAGEMENT, PERFORMANCE_FEE_RECIPIENT, KEEPER, EMERGENCY_ADMIN, AUCTION_FACTORY);
+        StrategyFactory _strategyFactory =
+            new StrategyFactory(MANAGEMENT, PERFORMANCE_FEE_RECIPIENT, KEEPER, EMERGENCY_ADMIN, AUCTION_FACTORY);
 
         console.log("-----------------------------");
         console.log("Deployer: ", _deployer);
@@ -41,14 +42,3 @@ contract DeployFactories is Script {
     }
 
 }
-
-// -----------------------------
-// Deployer:  0x285E3b1E82f74A99D07D2aD25e159E75382bB43B
-// AccountantFactory deployed at:  0xDeCAFB666eE4F9c5E9F5B26Dc02E443035717D55
-// StakerFactory deployed at:  0x4219A2084e77865Ed94607412a96f5e503278869
-// StrategyFactory deployed at:  0x73dfCc4fB90E6e252E5D41f6588534a8043dBa58
-// -----------------------------
-
-// yBOLD: 0x9F4330700a36B29952869fac9b33f45EEdd8A3d8
-// accountant: 0x53acEBB9470Cfc9D231075154f5dcF1586A4c6fa
-// staker: 0x23346B04a7f55b8760E5860AA5A77383D63491cD

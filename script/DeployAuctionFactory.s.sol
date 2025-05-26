@@ -23,6 +23,3 @@ contract DeployAuctionFactory is Script {
     }
 
 }
-
-// Factory:
-// 0xa3A3702d81Fd317FA1B8735227e29dc756C976C5
