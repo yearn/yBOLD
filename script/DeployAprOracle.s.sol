@@ -15,8 +15,13 @@ contract DeployAprOracle is Script {
     function run() external {
         vm.startBroadcast(vm.envUint("DEPLOYER_PRIVATE_KEY"));
 
-        address _multiTroveGetter = address(0xFA61dB085510C64B83056Db3A7Acf3b6f631D235);
-        address _collateralRegistry = address(0xf949982B91C8c61e952B3bA942cbbfaef5386684);
+        // BOLD
+        // address _multiTroveGetter = address(0xFA61dB085510C64B83056Db3A7Acf3b6f631D235);
+        // address _collateralRegistry = address(0xf949982B91C8c61e952B3bA942cbbfaef5386684);
+
+        // USDaf
+        address _multiTroveGetter = address(0xeC2302866D7bD20B4959318189b26E56Eb1edcA5);
+        address _collateralRegistry = address(0xCFf0DcAb01563e5324ef9D0AdB0677d9C167d791);
 
         StrategyAprOracle _oracle = new StrategyAprOracle(MANAGEMENT, _multiTroveGetter, _collateralRegistry);
 
