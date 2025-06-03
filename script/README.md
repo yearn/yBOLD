@@ -8,6 +8,8 @@ Factories/Periphery:
 - accountant: 0x53acEBB9470Cfc9D231075154f5dcF1586A4c6fa
 - aprOracle: 0x555f3FFe6c5c6C65609d8627ef30dA0aF9060B3D
 - aprOracle (new, sp yield fix): 0x7a7F1C839cf7807D788Da5276A0174Fc2Bb14409
+- vaultReportTrigger: 0xFdfEbEE8eD1Ae9Fed6b5b23FfE6dFa14E84c9B3A
+- strategyReportTrigger: 0xb9F57B62Cbe9463da16E5b75e3B809321a0eA871
 
 yBOLD:
 - yBOLD: 0x9F4330700a36B29952869fac9b33f45EEdd8A3d8
