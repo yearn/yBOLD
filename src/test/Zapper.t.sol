@@ -3,7 +3,7 @@ pragma solidity ^0.8.18;
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import "forge-std/console2.sol";
-import {Setup} from "./utils/Setup.sol";
+import {ERC20, Setup} from "./utils/Setup.sol";
 
 import {Zapper} from "../periphery/Zapper.sol";
 
@@ -40,6 +40,10 @@ contract ZapperTest is Setup {
         assertEq(_shares, _staker.previewDeposit(_amount));
         assertEq(_staker.balanceOf(_receiver), _shares);
 
+        // Check allowances
+        assertEq(asset.allowance(address(zapper), address(zapper.YEARN_BOLD())), type(uint256).max);
+        assertEq(zapper.YEARN_BOLD().allowance(address(zapper), address(zapper.STAKED_YEARN_BOLD())), type(uint256).max);
+
         vm.stopPrank();
     }
 
@@ -70,6 +74,34 @@ contract ZapperTest is Setup {
         assertEq(_staker.balanceOf(_receiver), 0);
 
         vm.stopPrank();
+    }
+
+    function test_sweep(uint256 _amount, address _receiver, address _notSMS) external {
+        vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
+        vm.assume(_receiver != address(0) && _notSMS != zapper.SMS());
+
+        ERC20 _asset = ERC20(tokenAddrs["YFI"]);
+        airdrop(_asset, address(zapper), _amount);
+
+        uint256 _balanceBefore = _asset.balanceOf(_receiver);
+
+        vm.startPrank(zapper.SMS());
+        zapper.sweep(_asset, _receiver);
+        vm.stopPrank();
+
+        assertEq(_asset.balanceOf(_receiver), _balanceBefore + _amount);
+        assertEq(_asset.balanceOf(address(zapper)), 0);
+
+        vm.startPrank(zapper.SMS());
+        vm.expectRevert("!receiver");
+        zapper.sweep(_asset, address(0));
+        vm.expectRevert("!balance");
+        zapper.sweep(_asset, _receiver);
+        vm.stopPrank();
+
+        vm.expectRevert(); // "!SMS"
+        vm.prank(_notSMS);
+        zapper.sweep(_asset, _receiver);
     }
 
 }
