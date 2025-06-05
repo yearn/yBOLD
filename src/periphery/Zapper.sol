@@ -47,7 +47,7 @@ contract Zapper {
     /// @notice Allows an on-chain or off-chain user to simulate
     ///         the effects of their redemption at the current block,
     ///         given current on-chain conditions
-    ///         @dev This will round down
+    /// @dev This will round down
     /// @param _shares The amount of st-yBOLD that would be redeemed
     /// @return The amount of BOLD that would be returned
     function previewRedeem(
