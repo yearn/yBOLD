@@ -2,12 +2,13 @@
 pragma solidity 0.8.23;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+// import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IStrategy} from "@tokenized-strategy/interfaces/IStrategy.sol";
 
 contract Zapper {
 
     using SafeERC20 for IERC20;
-    using SafeERC20 for IERC4626;
+    using SafeERC20 for IStrategy;
 
     // ===============================================================
     // Constants
@@ -16,8 +17,8 @@ contract Zapper {
     address public constant SMS = 0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7;
 
     IERC20 public constant BOLD = IERC20(0x6440f144b7e50D6a8439336510312d2F54beB01D);
-    IERC4626 public constant YEARN_BOLD = IERC4626(0x9F4330700a36B29952869fac9b33f45EEdd8A3d8);
-    IERC4626 public constant STAKED_YEARN_BOLD = IERC4626(0x23346B04a7f55b8760E5860AA5A77383D63491cD);
+    IStrategy public constant YEARN_BOLD = IStrategy(0x9F4330700a36B29952869fac9b33f45EEdd8A3d8);
+    IStrategy public constant STAKED_YEARN_BOLD = IStrategy(0x23346B04a7f55b8760E5860AA5A77383D63491cD);
 
     // ===============================================================
     // Constructor
@@ -49,14 +50,15 @@ contract Zapper {
 
     /// @notice Zap from st-yBOLD to BOLD
     /// @param _shares The amount of st-yBOLD to zap out
+    /// @param _maxLoss The maximum loss allowed during the zap out
     /// @param _receiver The address to receive the BOLD
     /// @return The amount of BOLD received
-    function zapOut(uint256 _shares, address _receiver) external returns (uint256) {
+    function zapOut(uint256 _shares, uint256 _maxLoss, address _receiver) external returns (uint256) {
         // Redeem st-yBOLD to yBOLD on behalf of the caller
-        _shares = STAKED_YEARN_BOLD.redeem(_shares, address(this), msg.sender);
+        _shares = STAKED_YEARN_BOLD.redeem(_shares, address(this), msg.sender, _maxLoss);
 
         // Withdraw yBOLD to BOLD and send to the receiver
-        return YEARN_BOLD.redeem(_shares, _receiver, address(this));
+        return YEARN_BOLD.redeem(_shares, _receiver, address(this), _maxLoss);
     }
 
     // ===============================================================
