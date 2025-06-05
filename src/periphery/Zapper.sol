@@ -13,10 +13,16 @@ contract Zapper {
     // Constants
     // ===============================================================
 
+    /// @notice SMS on mainnet
     address public constant SMS = 0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7;
 
+    /// @notice BOLD token address
     IERC20 public constant BOLD = IERC20(0x6440f144b7e50D6a8439336510312d2F54beB01D);
+
+    /// @notice yBOLD token address
     IStrategy public constant YEARN_BOLD = IStrategy(0x9F4330700a36B29952869fac9b33f45EEdd8A3d8);
+
+    /// @notice st-yBOLD token address
     IStrategy public constant STAKED_YEARN_BOLD = IStrategy(0x23346B04a7f55b8760E5860AA5A77383D63491cD);
 
     // ===============================================================
