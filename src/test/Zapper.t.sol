@@ -30,6 +30,8 @@ contract ZapperTest is Setup {
         // Approve BOLD to the zapper
         asset.approve(address(zapper), _amount);
 
+        uint256 _expectedSharesOut = zapper.previewDeposit(_amount);
+
         // Zap in
         _shares = zapper.zapIn(_amount, _receiver);
 
@@ -37,7 +39,7 @@ contract ZapperTest is Setup {
         assertEq(asset.balanceOf(user), 0);
         assertEq(asset.balanceOf(address(zapper)), 0);
         assertEq(_staker.balanceOf(address(zapper)), 0);
-        assertEq(_shares, _staker.previewDeposit(_amount));
+        assertEq(_shares, _expectedSharesOut);
         assertEq(_staker.balanceOf(_receiver), _shares);
 
         // Check allowances
@@ -55,12 +57,11 @@ contract ZapperTest is Setup {
         vm.startPrank(_receiver);
 
         IERC4626 _staker = zapper.STAKED_YEARN_BOLD();
-        IERC4626 _vault = zapper.YEARN_BOLD();
 
         // Approve zapper to spend st-yBOLD
         _staker.approve(address(zapper), _shares);
 
-        uint256 _expectedAssetsOut = _vault.previewRedeem(_staker.previewRedeem(_shares));
+        uint256 _expectedAssetsOut = zapper.previewRedeem(_shares);
 
         // Zap out
         uint256 _assets = zapper.zapOut(_shares, 0, _secondReceiver);

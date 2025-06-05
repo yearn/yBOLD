@@ -29,6 +29,34 @@ contract Zapper {
     }
 
     // ===============================================================
+    // View functions
+    // ===============================================================
+
+    /// @notice Allows an on-chain or off-chain user to simulate
+    ///         the effects of their deposit at the current block, given
+    ///         current on-chain conditions
+    /// @dev This will round down
+    /// @param _assets The amount of BOLD to deposit
+    /// @return Expected st-yBOLD shares that would be issued
+    function previewDeposit(
+        uint256 _assets
+    ) external view returns (uint256) {
+        return STAKED_YEARN_BOLD.previewDeposit(YEARN_BOLD.previewDeposit(_assets));
+    }
+
+    /// @notice Allows an on-chain or off-chain user to simulate
+    ///         the effects of their redemption at the current block,
+    ///         given current on-chain conditions
+    ///         @dev This will round down
+    /// @param _shares The amount of st-yBOLD that would be redeemed
+    /// @return The amount of BOLD that would be returned
+    function previewRedeem(
+        uint256 _shares
+    ) external view returns (uint256) {
+        return YEARN_BOLD.previewRedeem(STAKED_YEARN_BOLD.previewRedeem(_shares));
+    }
+
+    // ===============================================================
     // Mutated functions
     // ===============================================================
 
