@@ -2,7 +2,6 @@
 pragma solidity 0.8.23;
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-// import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IStrategy} from "@tokenized-strategy/interfaces/IStrategy.sol";
 
 contract Zapper {
