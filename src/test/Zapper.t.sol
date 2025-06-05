@@ -64,7 +64,7 @@ contract ZapperTest is Setup {
         uint256 _expectedAssetsOut = zapper.previewRedeem(_shares);
 
         // Zap out
-        uint256 _assets = zapper.zapOut(_shares, 0, _secondReceiver);
+        uint256 _assets = zapper.zapOut(_shares, _secondReceiver, 0);
 
         // Check balances
         assertEq(asset.balanceOf(_secondReceiver), _assets);

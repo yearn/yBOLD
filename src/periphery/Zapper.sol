@@ -83,10 +83,10 @@ contract Zapper {
 
     /// @notice Zap from st-yBOLD to BOLD
     /// @param _shares The amount of st-yBOLD to zap out
-    /// @param _maxLoss The maximum loss allowed during the zap out
     /// @param _receiver The address to receive the BOLD
+    /// @param _maxLoss The maximum loss allowed during the zap out
     /// @return The amount of BOLD received
-    function zapOut(uint256 _shares, uint256 _maxLoss, address _receiver) external returns (uint256) {
+    function zapOut(uint256 _shares, address _receiver, uint256 _maxLoss) external returns (uint256) {
         // Redeem st-yBOLD to yBOLD on behalf of the caller
         _shares = STAKED_YEARN_BOLD.redeem(_shares, address(this), msg.sender, _maxLoss);
 
