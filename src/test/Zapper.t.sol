@@ -6,15 +6,18 @@ import "forge-std/console2.sol";
 import {ERC20, Setup} from "./utils/Setup.sol";
 
 import {Zapper} from "../periphery/Zapper.sol";
+import {MorphoPriceOracle} from "../periphery/MorphoPriceOracle.sol";
 
 contract ZapperTest is Setup {
 
     Zapper public zapper;
+    MorphoPriceOracle public oracle;
 
     function setUp() public override {
         super.setUp();
 
         zapper = new Zapper();
+        oracle = new MorphoPriceOracle();
     }
 
     function test_zapIn(uint256 _amount, address _receiver) public returns (uint256 _shares) {
@@ -103,6 +106,14 @@ contract ZapperTest is Setup {
         vm.expectRevert(); // "!SMS"
         vm.prank(_notSMS);
         zapper.sweep(_asset, _receiver);
+    }
+
+    function test_zapperPreviews(uint256 _shares, uint256 _assets) external {
+        vm.assume(_shares > minFuzzAmount && _shares < maxFuzzAmount);
+        vm.assume(_assets > minFuzzAmount && _assets < maxFuzzAmount);
+
+        assertEq(oracle.convertToAssets(_shares), zapper.previewRedeem(_shares));
+        assertEq(oracle.convertToShares(_assets), zapper.previewDeposit(_assets));
     }
 
 }
