@@ -2,6 +2,7 @@
 pragma solidity 0.8.23;
 
 import {Zapper} from "../src/periphery/Zapper.sol";
+import {MorphoPriceOracle} from "../src/periphery/MorphoPriceOracle.sol";
 
 import "forge-std/Script.sol";
 
@@ -15,10 +16,12 @@ contract DeployZapper is Script {
     function run() external {
         vm.startBroadcast(vm.envUint("DEPLOYER_PRIVATE_KEY"));
 
-        Zapper _zapper = new Zapper();
+        // Zapper _zapper = new Zapper();
+        MorphoPriceOracle _oracle = new MorphoPriceOracle();
 
         console.log("-----------------------------");
-        console.log("zapper deployed at: ", address(_zapper));
+        // console.log("zapper deployed at: ", address(_zapper));
+        console.log("oracle deployed at: ", address(_oracle));
         console.log("-----------------------------");
 
         vm.stopBroadcast();
