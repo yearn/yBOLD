@@ -47,6 +47,8 @@ contract Setup is ExtendedTest, IEvents {
     address public performanceFeeRecipient = address(3);
     address public emergencyAdmin = address(5);
 
+    // felix addresses - https://usefelix.gitbook.io/felix-docs/developers/market-1-feusd-cdp
+    // explorer - https://www.hyperscan.com/address/0x5B271DC20bA7Beb8EEE276EB4F1644B6A217f0A3?tab=contract
     // Contract addresses.
     address public multiTroveGetter = address(0xFA61dB085510C64B83056Db3A7Acf3b6f631D235);
     address public collateralRegistry = address(0xf949982B91C8c61e952B3bA942cbbfaef5386684);
