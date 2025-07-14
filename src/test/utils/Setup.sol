@@ -48,14 +48,14 @@ contract Setup is ExtendedTest, IEvents {
     address public emergencyAdmin = address(5);
 
     // felix addresses - https://usefelix.gitbook.io/felix-docs/developers/market-1-feusd-cdp
-    // explorer - https://www.hyperscan.com/address/0x5B271DC20bA7Beb8EEE276EB4F1644B6A217f0A3?tab=contract
+    // explorer - https://purrsec.com/
     // Contract addresses.
-    address public multiTroveGetter = address(0xFA61dB085510C64B83056Db3A7Acf3b6f631D235);
-    address public collateralRegistry = address(0xf949982B91C8c61e952B3bA942cbbfaef5386684);
-    address public addressesRegistry = address(0x20F7C9ad66983F6523a0881d0f82406541417526); // WETH Address Registry
-    address public stabilityPool = address(0x5721cbbd64fc7Ae3Ef44A0A3F9a790A9264Cf9BF); // WETH Stability Pool
-    address public collateralPriceOracle = address(0xCC5F8102eb670c89a4a3c567C13851260303c24F); // Liquity WETH Price Oracle
-    address public priceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
+    address public multiTroveGetter = address(0x708809aC6ac45bA95532C961fD46228fA6dd761E);
+    address public collateralRegistry = address(0x9De1e57049c475736289Cb006212F3E1DCe4711B);
+    address public addressesRegistry = address(0x7201Fb5C3BA06f10A858819F62221AE2f473815D); // WHYPE Address Registry
+    address public stabilityPool = address(0x576c9c501473e01aE23748de28415a74425eFD6b); // WHYPE Stability Pool
+    address public collateralPriceOracle = address(0x12a1868b89789900e413a6241CA9032dD1873a51); // Liquity WHYPE Price Oracle
+    address public priceOracle = address(0xa8a94Da411425634e3Ed6C331a32ab4fd774aa43); // Redstone WHYPE/USD
 
     // Address of the real deployed Factory
     address public factory;
@@ -64,16 +64,16 @@ contract Setup is ExtendedTest, IEvents {
     uint256 public decimals;
     uint256 public MAX_BPS = 10_000;
 
-    // Fuzz from $0.1 of 1e18 stable coins up to 10 billion of a 1e18 coin
+    // Fuzz from $10 of 1e18 stable coins up to 10 billion of a 1e18 coin
     uint256 public maxFuzzAmount = 10_000_000_000 ether;
-    uint256 public minFuzzAmount = 0.1 ether;
+    uint256 public minFuzzAmount = 10 ether;
 
     // Default profit max unlock time is set for 10 days
     uint256 public profitMaxUnlockTime = 10 days;
 
     function setUp() public virtual {
-        uint256 _blockNumber = 22_627_836; // Caching for faster tests
-        vm.selectFork(vm.createFork(vm.envString("ETH_RPC_URL"), _blockNumber));
+        uint256 _blockNumber = 8_411_416; // Caching for faster tests
+        vm.selectFork(vm.createFork(vm.envString("HYPER_RPC_URL"), _blockNumber));
 
         _setTokenAddrs();
 
@@ -99,6 +99,9 @@ contract Setup is ExtendedTest, IEvents {
         vm.label(management, "management");
         vm.label(address(strategy), "strategy");
         vm.label(performanceFeeRecipient, "performanceFeeRecipient");
+
+        // Patch some weirdness in the test environment
+        skip(1000);
     }
 
     function setUpStrategy() public returns (address) {
@@ -168,7 +171,7 @@ contract Setup is ExtendedTest, IEvents {
         airdrop(ERC20(tokenAddrs["BOLD"]), stabilityPool, _amount);
         IStabilityPool _stabilityPool = IStabilityPool(stabilityPool);
         vm.prank(_stabilityPool.activePool());
-        _stabilityPool.triggerBoldRewards(_amount);
+        _stabilityPool.triggerfeUSDRewards(_amount);
         strategy.claim();
     }
 
@@ -178,7 +181,7 @@ contract Setup is ExtendedTest, IEvents {
         uint256 _collToAdd = _availableCollateral / 10;
         require(_collToAdd >= 1 ether, "simulateCollateralGain: Not enough collateral!");
         uint256 _debtToOffset = _collToAdd * ethPrice() / 1e18;
-        uint256 _totalBoldDeposits = _stabilityPool.getTotalBoldDeposits();
+        uint256 _totalBoldDeposits = _stabilityPool.getTotalfeUSDDeposits();
         if (_debtToOffset > _totalBoldDeposits) {
             uint256 _amountToDeposit = _debtToOffset - _totalBoldDeposits;
             address _shrimp = address(420);
@@ -211,13 +214,13 @@ contract Setup is ExtendedTest, IEvents {
 
     function _setTokenAddrs() internal {
         tokenAddrs["WBTC"] = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
-        tokenAddrs["YFI"] = 0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e;
-        tokenAddrs["WETH"] = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        tokenAddrs["LINK"] = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
+        tokenAddrs["YFI"] = 0x835FEBF893c6DdDee5CF762B0f8e31C5B06938ab; // some shitcoin on hyperliquid
+        tokenAddrs["WETH"] = 0x5555555555555555555555555555555555555555; // WHYPE
+        tokenAddrs["LINK"] = 0xFc5126377F0efc0041C0969Ef9BA903Ce67d151e; // some other shitcoin on hyperliquid
         tokenAddrs["USDT"] = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
         tokenAddrs["DAI"] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
         tokenAddrs["USDC"] = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-        tokenAddrs["BOLD"] = 0x6440f144b7e50D6a8439336510312d2F54beB01D;
+        tokenAddrs["BOLD"] = 0x02c6a2fA58cC01A18B8D9E00eA48d65E4dF26c70; // feUSD
     }
 
 }

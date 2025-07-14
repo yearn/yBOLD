@@ -81,10 +81,10 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     ) BaseHealthCheck(_asset, _name) {
         COLL_PRICE_ORACLE = IAddressesRegistry(_addressesRegistry).priceFeed();
         (, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
-        require(!_isOracleDown && COLL_PRICE_ORACLE.priceSource() == IPriceFeed.PriceSource.primary, "!oracle");
+        // require(!_isOracleDown && COLL_PRICE_ORACLE.priceSource() == IPriceFeed.PriceSource.primary, "!oracle");
 
         SP = IAddressesRegistry(_addressesRegistry).stabilityPool();
-        require(SP.boldToken() == _asset, "!sp");
+        require(SP.feUSDToken() == _asset, "!sp");
         COLL = ERC20(SP.collToken());
 
         AUCTION_FACTORY = IAuctionFactory(_auctionFactory);
@@ -92,7 +92,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         AUCTION.enable(address(COLL));
 
         maxGasPriceToTend = 200 * 1e9;
-        bufferPercentage = MIN_BUFFER_PERCENTAGE;
+        bufferPercentage = MIN_BUFFER_PERCENTAGE * 100; // Increase by 100x to account for not checking if the oracle is down
         dustThreshold = MIN_DUST_THRESHOLD;
     }
 
@@ -110,7 +110,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @dev Does not account for pending collateral reward value
     /// @return Estimated total assets held by the strategy
     function estimatedTotalAssets() public view returns (uint256) {
-        return asset.balanceOf(address(this)) + SP.getCompoundedBoldDeposit(address(this));
+        return asset.balanceOf(address(this)) + SP.getCompoundedfeUSDDeposit(address(this));
     }
 
     /// @inheritdoc BaseStrategy
@@ -240,9 +240,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         if (_available > dustThreshold) {
             (uint256 _price, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
             uint256 _bufferPercentage = bufferPercentage;
-            if (_isOracleDown || COLL_PRICE_ORACLE.priceSource() != IPriceFeed.PriceSource.primary) {
-                _bufferPercentage *= ORACLE_DOWN_BUFFER_PCT_MULTIPLIER;
-            }
+            // if (_isOracleDown || COLL_PRICE_ORACLE.priceSource() != IPriceFeed.PriceSource.primary) {
+            //     _bufferPercentage *= ORACLE_DOWN_BUFFER_PCT_MULTIPLIER;
+            // }
 
             // slither-disable-next-line divide-before-multiply
             AUCTION.setStartingPrice(_available * _price / WAD * _bufferPercentage / WAD / WAD); // Reverts if there's an active auction
