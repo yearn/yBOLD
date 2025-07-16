@@ -6,6 +6,14 @@ import {Setup, ERC20, IStabilityPool} from "./utils/Setup.sol";
 import {IAuction} from "../interfaces/IAuction.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 
+interface IRoleManagerFactory {
+    function newProject(
+        string memory,
+        address,
+        address
+    ) external returns (address);
+}
+
 contract OperationTest is Setup {
 
     function setUp() public virtual override {
@@ -31,6 +39,13 @@ contract OperationTest is Setup {
         assertEq(strategy.COLL(), tokenAddrs["WETH"]);
         assertEq(strategy.SP(), stabilityPool);
         assertEq(strategy.COLL_PRICE_ORACLE(), collateralPriceOracle);
+    }
+
+    function test_dep() public {
+        IRoleManagerFactory roleManager = IRoleManagerFactory(0xca12459a931643BF28388c67639b3F352fe9e5Ce);
+        address hi = 0x318d0059efE546b5687FA6744aF4339391153981;
+        roleManager.newProject("yearn", hi, hi); // @todo
+
     }
 
     function test_operation(

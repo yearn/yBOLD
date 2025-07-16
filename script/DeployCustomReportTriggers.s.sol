@@ -7,7 +7,7 @@ import {StrategyFixedReportTrigger} from "../src/periphery/StrategyFixedReportTr
 import "forge-std/Script.sol";
 
 // ---- Usage ----
-// forge script script/DeployCustomReportTriggers.s.sol:DeployCustomReportTriggers --verify --legacy --etherscan-api-key $KEY --rpc-url $RPC_URL --broadcast
+// forge script script/DeployCustomReportTriggers.s.sol:DeployCustomReportTriggers --verify --legacy --rpc-url https://rpc.hyperliquid.xyz/evm --broadcast --verifier blockscout --verifier-url 'https://www.hyperscan.com/api/'
 
 contract DeployCustomReportTriggers is Script {
 
