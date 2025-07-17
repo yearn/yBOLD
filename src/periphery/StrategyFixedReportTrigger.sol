@@ -19,8 +19,8 @@ contract StrategyFixedReportTrigger is CustomStrategyTriggerBase {
     // Constants
     // ===============================================================
 
-    /// @notice SMS on mainnet
-    address public constant SMS = 0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7;
+    /// @notice SMS on arbi
+    address public constant SMS = 0x6346282DB8323A54E840c6C772B4399C9c655C0d;
 
     /// @notice Common trigger contract
     ICommonReportTrigger public constant COMMON_REPORT_TRIGGER =
@@ -31,7 +31,7 @@ contract StrategyFixedReportTrigger is CustomStrategyTriggerBase {
     // ===============================================================
 
     constructor() {
-        minReportDelay = 3 days;
+        minReportDelay = 1 days;
     }
 
     // ===============================================================
