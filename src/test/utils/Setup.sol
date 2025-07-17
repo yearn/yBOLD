@@ -48,12 +48,12 @@ contract Setup is ExtendedTest, IEvents {
     address public emergencyAdmin = address(5);
 
     // Contract addresses.
-    address public multiTroveGetter = address(0xFA61dB085510C64B83056Db3A7Acf3b6f631D235);
-    address public collateralRegistry = address(0xf949982B91C8c61e952B3bA942cbbfaef5386684);
-    address public addressesRegistry = address(0x20F7C9ad66983F6523a0881d0f82406541417526); // WETH Address Registry
-    address public stabilityPool = address(0x5721cbbd64fc7Ae3Ef44A0A3F9a790A9264Cf9BF); // WETH Stability Pool
-    address public collateralPriceOracle = address(0xCC5F8102eb670c89a4a3c567C13851260303c24F); // Liquity WETH Price Oracle
-    address public priceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
+    address public multiTroveGetter = address(0xe80BD7c36Ad662F1b007Dc1B1C490FBf4C47Ab88);
+    address public collateralRegistry = address(0x7f7FbC2711C0D6E8eF757dBb82038032dD168e68);
+    address public addressesRegistry = address(0xBB6C6B994409b320E25e7dE129e0db5dA60aE89B); // WETH Address Registry
+    address public stabilityPool = address(0x9d9EF87a197c1bb3a97B2Ddc8716dF99079c125E); // WETH Stability Pool
+    address public collateralPriceOracle = address(0x8483efA691CE3f20eDCC9F8453F85B64F9872Fcb); // Liquity WETH Price Oracle
+    address public priceOracle = address(0x4DF393Fa84e4a0CFdF14ce52f2a4E0c3d1AB0668); // API3 ETH/USD
 
     // Address of the real deployed Factory
     address public factory;
@@ -70,8 +70,8 @@ contract Setup is ExtendedTest, IEvents {
     uint256 public profitMaxUnlockTime = 10 days;
 
     function setUp() public virtual {
-        uint256 _blockNumber = 22_627_836; // Caching for faster tests
-        vm.selectFork(vm.createFork(vm.envString("ETH_RPC_URL"), _blockNumber));
+        uint256 _blockNumber = 358_459_297; // Caching for faster tests
+        vm.selectFork(vm.createFork(vm.envString("ARBI_RPC_URL"), _blockNumber));
 
         _setTokenAddrs();
 
@@ -209,13 +209,13 @@ contract Setup is ExtendedTest, IEvents {
 
     function _setTokenAddrs() internal {
         tokenAddrs["WBTC"] = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
-        tokenAddrs["YFI"] = 0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e;
-        tokenAddrs["WETH"] = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        tokenAddrs["LINK"] = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
+        tokenAddrs["YFI"] = 0x25d887Ce7a35172C62FeBFD67a1856F20FaEbB00; // PEPE on Arbitrum
+        tokenAddrs["WETH"] = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; // WETH on Arbitrum
+        tokenAddrs["LINK"] = 0x11cDb42B0EB46D95f990BeDD4695A6e3fA034978; // CRV on Arbitrum
         tokenAddrs["USDT"] = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
         tokenAddrs["DAI"] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
         tokenAddrs["USDC"] = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-        tokenAddrs["BOLD"] = 0x6440f144b7e50D6a8439336510312d2F54beB01D;
+        tokenAddrs["BOLD"] = 0x4ecf61a6c2FaB8A047CEB3B3B263B401763e9D49; // USND
     }
 
 }

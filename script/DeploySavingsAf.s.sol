@@ -17,16 +17,16 @@ contract DeploySavingsAf is Script {
 
     address[] public strategies;
 
-    string private constant NAME = "Savings USDaf";
-    string private constant SYMBOL = "sUSDaf";
+    string private constant NAME = "Yearn USND";
+    string private constant SYMBOL = "yUSND";
 
-    address private constant ASSET = 0x85E30b8b263bC64d94b827ed450F2EdFEE8579dA; // USDaf
-    address private constant DEPLOYER = 0x285E3b1E82f74A99D07D2aD25e159E75382bB43B; // deployer
-    address private constant SMS = 0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7; // sms mainnet
-    address private constant KEEPER = 0x604e586F17cE106B64185A7a0d2c1Da5bAce711E; // yHaaS mainnet
-    address private constant ROLE_MANAGER = 0xb3bd6B2E61753C311EFbCF0111f75D29706D9a41;
+    address private constant ASSET = 0x4ecf61a6c2FaB8A047CEB3B3B263B401763e9D49; // USND
+    address private constant DEPLOYER = 0x420ACF637D662b80cca8bEfb327AA24039E7e0Fa; // deployer
+    address private constant SMS = 0x6346282DB8323A54E840c6C772B4399C9c655C0d; // sms arbi
+    address private constant KEEPER = 0xE0D19f6b240659da8E87ABbB73446E7B4346Baee; // yHaaS arbi
+    // address private constant ROLE_MANAGER = 0xb3bd6B2E61753C311EFbCF0111f75D29706D9a41;
 
-    StrategyFactory private constant STRATEGY_FACTORY = StrategyFactory(0x73dfCc4fB90E6e252E5D41f6588534a8043dBa58);
+    StrategyFactory private constant STRATEGY_FACTORY = StrategyFactory(0xdE66FC29E0F81Ef23E56d6a5226Cc288148fA98d);
     IVaultFactory private constant VAULT_FACTORY = IVaultFactory(0x770D0d1Fb036483Ed4AbB6d53c1C88fb277D812F); // 3.0.4 Vault Factory
 
     function run() external {
@@ -36,94 +36,96 @@ contract DeploySavingsAf is Script {
         address _deployer = vm.addr(_privateKey);
         require(_deployer == DEPLOYER, "!deployer");
 
-        address _scrvUSDStrategy = STRATEGY_FACTORY.newStrategy(
-            address(0x16B8111A999A9bDC3181192620A8F7b2439837Dd), // scrvUSD Address Registry
+        address _wethStrategy = STRATEGY_FACTORY.newStrategy(
+            address(0xBB6C6B994409b320E25e7dE129e0db5dA60aE89B), // WETH Address Registry
             ASSET,
-            "USDaf scrvUSD Stability Pool"
+            "USND WETH Stability Pool"
         );
-        strategies.push(_scrvUSDStrategy);
+        strategies.push(_wethStrategy);
 
-        address _sDAIStrategy = STRATEGY_FACTORY.newStrategy(
-            address(0x65799d1368Ed24125179dd6Bf5e9b845797Ca1Ba), // sDAI Address Registry
+        address _wstETHStrategy = STRATEGY_FACTORY.newStrategy(
+            address(0x5176fDd77FDef5B7F1EDd457D02a8ec1cFebBb34), // wstETH Address Registry
             ASSET,
-            "USDaf sDAI Stability Pool"
+            "USND wstETH Stability Pool"
         );
-        strategies.push(_sDAIStrategy);
+        strategies.push(_wstETHStrategy);
 
-        address _sUSDSStrategy = STRATEGY_FACTORY.newStrategy(
-            address(0x7f32320669e22380d00b28492E4479b93872d568), // sUSDS Address Registry
+        address _rETHStrategy = STRATEGY_FACTORY.newStrategy(
+            address(0x51253Ae341F6dD1c4Ff5692dE0eE69492743895E), // rETH Address Registry
             ASSET,
-            "USDaf sUSDS Stability Pool"
+            "USND rETH Stability Pool"
         );
-        strategies.push(_sUSDSStrategy);
+        strategies.push(_rETHStrategy);
 
-        address _sfrxUSDStrategy = STRATEGY_FACTORY.newStrategy(
-            address(0x4B3eb2b1bBb0134D5ED5DAA35FeA78424B9481cd), // sfrxUSD Address Registry
+        address _rsETHStrategy = STRATEGY_FACTORY.newStrategy(
+            address(0xcbF5786902487C1165a98f48Ebc65Fa0e62739C6), // rsETH Address Registry
             ASSET,
-            "USDaf sfrxUSD Stability Pool"
+            "USND rsETH Stability Pool"
         );
-        strategies.push(_sfrxUSDStrategy);
+        strategies.push(_rsETHStrategy);
 
-        address _sUSDeStrategy = STRATEGY_FACTORY.newStrategy(
-            address(0x20E3630D9ce22c7f3A4aee735fa007C06f4709dF), // sUSDe Address Registry
+        address _weETHStrategy = STRATEGY_FACTORY.newStrategy(
+            address(0xc23928FD7D93ccb61ca60F09311De2DdA66c02e4), // weETH Address Registry
             ASSET,
-            "USDaf sUSDe Stability Pool"
+            "USND weETH Stability Pool"
         );
-        strategies.push(_sUSDeStrategy);
+        strategies.push(_weETHStrategy);
+
+        address _ARBStrategy = STRATEGY_FACTORY.newStrategy(
+            address(0x7900B65266e157D9fce97e92Ac3879CB712dEd31), // ARB Address Registry
+            ASSET,
+            "USND ARB Stability Pool"
+        );
+        strategies.push(_ARBStrategy);
+
+        address _COMPStrategy = STRATEGY_FACTORY.newStrategy(
+            address(0xfe75AdD51A119e556ACD53676b12f865A6737177), // COMP Address Registry
+            ASSET,
+            "USND COMP Stability Pool"
+        );
+        strategies.push(_COMPStrategy);
 
         address _tBTCStrategy = STRATEGY_FACTORY.newStrategy(
-            address(0xc693C91c855f4B51957f8ea221534538232F0f98), // tBTC Address Registry
+            address(0xF329FB0E818bD92395785a4f863636bC0D85e1DF), // tBTC Address Registry
             ASSET,
-            "USDaf tBTC Stability Pool"
+            "USND tBTC Stability Pool"
         );
         strategies.push(_tBTCStrategy);
 
-        address _WBTC18Strategy = STRATEGY_FACTORY.newStrategy(
-            address(0x2AFF30744843aF04F68286Fa4818d44e93b80561), // WBTC18 Address Registry
-            ASSET,
-            "USDaf WBTC18 Stability Pool"
-        );
-        strategies.push(_WBTC18Strategy);
-
-        address _cbBTC18Strategy = STRATEGY_FACTORY.newStrategy(
-            address(0x0F7Eb92d20e9624601D7dD92122AEd80Efa8ec6a), // cbBTC18 Address Registry
-            ASSET,
-            "USDaf cbBTC18 Stability Pool"
-        );
-        strategies.push(_cbBTC18Strategy);
-
-        IVault _vault = IVault(VAULT_FACTORY.deploy_new_vault(ASSET, NAME, SYMBOL, DEPLOYER, 3 days));
+        IVault _vault = IVault(VAULT_FACTORY.deploy_new_vault(ASSET, NAME, SYMBOL, DEPLOYER, 1 days));
         _vault.set_role(DEPLOYER, 16383); // ADD_STRATEGY_MANAGER/DEPOSIT_LIMIT_MANAGER/MAX_DEBT_MANAGER/DEBT_MANAGER
         _vault.set_role(KEEPER, 32); // REPORTING_MANAGER
         _vault.set_deposit_limit(100_000_000_000 ether); // 100 billion
+        _vault.set_auto_allocate(true);
         for (uint256 i = 0; i < strategies.length; i++) {
             _vault.add_strategy(strategies[i]);
             _vault.update_max_debt_for_strategy(strategies[i], 10_000_000_000 ether); // 10 billion
         }
-        _vault.transfer_role_manager(ROLE_MANAGER);
-        _vault.set_role(DEPLOYER, 0);
+        // _vault.transfer_role_manager(ROLE_MANAGER);
+        // _vault.set_role(DEPLOYER, 0);
 
         for (uint256 i = 0; i < strategies.length; i++) {
             IStrategyInterface strategy = IStrategyInterface(strategies[i]);
             strategy.acceptManagement();
-            strategy.setProfitMaxUnlockTime(3 days);
+            strategy.setProfitMaxUnlockTime(0);
             strategy.setAllowed(address(_vault));
             strategy.setPendingManagement(SMS);
-            require(strategy.performanceFee() == 1000, "!fee");
+            strategy.setPerformanceFee(0);
+            require(strategy.performanceFee() == 0, "!fee");
         }
 
         vm.stopBroadcast();
 
         console.log("-----------------------------");
-        console.log("scrvUSD Strategy deployed at: ", _scrvUSDStrategy);
-        console.log("sDAI Strategy deployed at: ", _sDAIStrategy);
-        console.log("sUSDS Strategy deployed at: ", _sUSDSStrategy);
-        console.log("sfrxUSD Strategy deployed at: ", _sfrxUSDStrategy);
-        console.log("sUSDe Strategy deployed at: ", _sUSDeStrategy);
+        console.log("WETH Strategy deployed at: ", _wethStrategy);
+        console.log("wstETH Strategy deployed at: ", _wstETHStrategy);
+        console.log("rETH Strategy deployed at: ", _rETHStrategy);
+        console.log("rsETH Strategy deployed at: ", _rsETHStrategy);
+        console.log("weETH Strategy deployed at: ", _weETHStrategy);
+        console.log("ARB Strategy deployed at: ", _ARBStrategy);
+        console.log("COMP Strategy deployed at: ", _COMPStrategy);
         console.log("tBTC Strategy deployed at: ", _tBTCStrategy);
-        console.log("WBTC18 Strategy deployed at: ", _WBTC18Strategy);
-        console.log("cbBTC18 Strategy deployed at: ", _cbBTC18Strategy);
-        console.log("sUSDaf deployed at: ", address(_vault));
+        console.log("Vault deployed at: ", address(_vault));
         console.log("-----------------------------");
     }
 

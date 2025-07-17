@@ -13,11 +13,11 @@ import "forge-std/Script.sol";
 
 contract DeployFactories is Script {
 
-    address private constant MANAGEMENT = 0x285E3b1E82f74A99D07D2aD25e159E75382bB43B; // deployer
-    address private constant KEEPER = 0x604e586F17cE106B64185A7a0d2c1Da5bAce711E; // yHaaS mainnet
-    address private constant EMERGENCY_ADMIN = 0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7; // SMS mainnet
-    address private constant PERFORMANCE_FEE_RECIPIENT = 0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7; // SMS mainnet
-    address private constant AUCTION_FACTORY = 0xa3A3702d81Fd317FA1B8735227e29dc756C976C5; // DoS resistant auction factory
+    address private constant MANAGEMENT = 0x420ACF637D662b80cca8bEfb327AA24039E7e0Fa; // deployer
+    address private constant KEEPER = 0xE0D19f6b240659da8E87ABbB73446E7B4346Baee; // yHaaS arbi
+    address private constant EMERGENCY_ADMIN = 0x6346282DB8323A54E840c6C772B4399C9c655C0d; // SMS arbi
+    address private constant PERFORMANCE_FEE_RECIPIENT = 0x9aB47bE62631036CDa3a64B8322704988427F366; // Accountant arbi
+    address private constant AUCTION_FACTORY = 0xCd1E4c17A5485f2a6DF1C01cC65EFDe25c951dBB; // DoS resistant auction factory
 
     function run() external {
         uint256 _privateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -26,15 +26,15 @@ contract DeployFactories is Script {
         address _deployer = vm.addr(_privateKey);
         require(_deployer == MANAGEMENT, "!deployer");
 
-        AccountantFactory _accountantFactory = new AccountantFactory();
-        StakerFactory _stakerFactory = new StakerFactory(MANAGEMENT, PERFORMANCE_FEE_RECIPIENT, KEEPER, EMERGENCY_ADMIN);
+        // AccountantFactory _accountantFactory = new AccountantFactory();
+        // StakerFactory _stakerFactory = new StakerFactory(MANAGEMENT, PERFORMANCE_FEE_RECIPIENT, KEEPER, EMERGENCY_ADMIN);
         StrategyFactory _strategyFactory =
             new StrategyFactory(MANAGEMENT, PERFORMANCE_FEE_RECIPIENT, KEEPER, EMERGENCY_ADMIN, AUCTION_FACTORY);
 
         console.log("-----------------------------");
         console.log("Deployer: ", _deployer);
-        console.log("AccountantFactory deployed at: ", address(_accountantFactory));
-        console.log("StakerFactory deployed at: ", address(_stakerFactory));
+        // console.log("AccountantFactory deployed at: ", address(_accountantFactory));
+        // console.log("StakerFactory deployed at: ", address(_stakerFactory));
         console.log("StrategyFactory deployed at: ", address(_strategyFactory));
         console.log("-----------------------------");
 
