@@ -19,8 +19,8 @@ contract VaultFixedReportTrigger is CustomVaultTriggerBase {
     // Constants
     // ===============================================================
 
-    /// @notice SMS on mainnet
-    address public constant SMS = 0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7;
+    /// @notice SMS on hyperliquid
+    address public constant SMS = 0x5e061C197D69c0e809e9269eD212730D91E8cB39;
 
     /// @notice Common trigger contract
     ICommonReportTrigger public constant COMMON_REPORT_TRIGGER =
@@ -31,7 +31,7 @@ contract VaultFixedReportTrigger is CustomVaultTriggerBase {
     // ===============================================================
 
     constructor() {
-        minReportDelay = 3 days;
+        minReportDelay = 1 days;
     }
 
     // ===============================================================
