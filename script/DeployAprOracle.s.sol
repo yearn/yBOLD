@@ -20,8 +20,8 @@ contract DeployAprOracle is Script {
         // address _collateralRegistry = address(0xf949982B91C8c61e952B3bA942cbbfaef5386684);
 
         // USDaf
-        address _multiTroveGetter = address(0xeC2302866D7bD20B4959318189b26E56Eb1edcA5);
-        address _collateralRegistry = address(0xCFf0DcAb01563e5324ef9D0AdB0677d9C167d791);
+        address _multiTroveGetter = address(0xb3683A407bddDDFB126Cf06Fb52d974a08fD7E80);
+        address _collateralRegistry = address(0x33D68055Cd54061991B2e98b9ab326fFCE4d60Fe);
 
         StrategyAprOracle _oracle = new StrategyAprOracle(MANAGEMENT, _multiTroveGetter, _collateralRegistry);
 
