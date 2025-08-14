@@ -18,7 +18,6 @@ contract OnLossDepositLimit is IDepositLimitModule {
 
     /// @notice Blocks deposits when the vault's price per share is below WAD
     ///         Otherwise, returns the vault's deposit limit
-    /// @param receiver The address of the receiver
     function available_deposit_limit(
         address /*receiver*/
     ) external view returns (uint256) {
