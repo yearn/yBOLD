@@ -7,7 +7,7 @@ import {IDepositLimitModule} from "../interfaces/IDepositLimitModule.sol";
 
 /// @title OnLossDepositLimit
 /// @notice Must serve as the `deposit_limit_module` for the vault.
-///         Blocks deposits when the vault's price per share is below 1e18
+///         Blocks deposits when the vault's price per share is below WAD
 contract OnLossDepositLimit is IDepositLimitModule {
 
     /// @notice The WAD constant
@@ -16,6 +16,9 @@ contract OnLossDepositLimit is IDepositLimitModule {
     /// @notice The vault to check its price per share
     IVault public constant VAULT = IVault(0x9F4330700a36B29952869fac9b33f45EEdd8A3d8); // yBOLD
 
+    /// @notice Blocks deposits when the vault's price per share is below WAD
+    ///         Otherwise, returns the vault's deposit limit
+    /// @param receiver The address of the receiver
     function available_deposit_limit(
         address /*receiver*/
     ) external view returns (uint256) {
