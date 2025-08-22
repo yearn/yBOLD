@@ -21,7 +21,7 @@ contract OnLossDepositLimit is IDepositLimitModule {
     function available_deposit_limit(
         address /*receiver*/
     ) external view returns (uint256) {
-        return VAULT.pricePerShare() < WAD ? 0 : VAULT.deposit_limit();
+        return VAULT.pricePerShare() < WAD ? 0 : type(uint256).max;
     }
 
 }
