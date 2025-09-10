@@ -9,6 +9,7 @@ import {IStabilityPool} from "./interfaces/IStabilityPool.sol";
 import {IAuction} from "./interfaces/IAuction.sol";
 import {IAuctionFactory} from "./interfaces/IAuctionFactory.sol";
 import {IAddressesRegistry} from "./interfaces/IAddressesRegistry.sol";
+// @todo 1. add max to dustThreshold, 2. add min to maxGasPriceToTend
 
 contract LiquityV2SPStrategy is BaseHealthCheck {
 
@@ -233,7 +234,12 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         uint256 /*_totalIdle*/
     ) internal override {
         if (isCollateralGainToClaim()) claim();
-        if (AUCTION.isActive(address(COLL)) && AUCTION.available(address(COLL)) == 0) AUCTION.settle(address(COLL));
+
+        // If there's an active auction, sweep if needed, and settle
+        if (AUCTION.isActive(address(COLL))) {
+            if (AUCTION.available(address(COLL)) > 0) AUCTION.sweep(address(COLL));
+            AUCTION.settle(address(COLL));
+        }
 
         uint256 _toAuction = COLL.balanceOf(address(this));
         uint256 _available = COLL.balanceOf(address(AUCTION)) + _toAuction;

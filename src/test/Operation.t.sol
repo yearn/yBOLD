@@ -390,6 +390,38 @@ contract OperationTest is Setup {
         assertEq(auction.available(coll), 0);
     }
 
+    function test_tendActiveAuction(
+        uint256 _amount
+    ) public {
+        vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
+
+        address coll = strategy.COLL();
+        IAuction auction = IAuction(strategy.AUCTION());
+
+        // Airdrop enough collateral rewards to kick a new auction
+        airdrop(ERC20(coll), strategy.AUCTION(), _amount);
+
+        // Kick it
+        vm.prank(keeper);
+        strategy.tend();
+
+        assertTrue(auction.isActive(coll));
+        assertEq(auction.available(coll), _amount);
+
+        uint256 startingPriceBefore = auction.startingPrice();
+
+        // Airdrop more collateral rewards so that we need to kick again
+        airdrop(ERC20(coll), strategy.AUCTION(), _amount);
+
+        // Kick again, with new lot
+        vm.prank(keeper);
+        strategy.tend();
+
+        assertTrue(auction.isActive(coll));
+        assertEq(auction.available(coll), _amount * 2);
+        assertApproxEqAbs(auction.startingPrice(), startingPriceBefore * 2, 1);
+    }
+
     function test_tendSettleAuctionAndKickNewOne(
         uint256 _amount
     ) public {
