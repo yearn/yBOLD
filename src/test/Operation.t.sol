@@ -210,8 +210,9 @@ contract OperationTest is Setup {
     function test_tendTrigger_collateralToSell_basefeeTooHigh(uint256 _amount, uint256 _airdropAmount) public {
         test_tendTrigger_collateralToSell(_amount, _airdropAmount);
 
-        vm.prank(management);
-        strategy.setMaxGasPriceToTend(0);
+        // Set `maxGasPriceToTend` to 0
+        vm.store(address(strategy), bytes32(uint256(1)), bytes32(uint256(0)));
+        assertEq(strategy.maxGasPriceToTend(), 0);
 
         (bool trigger,) = strategy.tendTrigger();
         assertFalse(trigger);

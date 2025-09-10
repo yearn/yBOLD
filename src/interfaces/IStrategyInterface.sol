@@ -18,6 +18,7 @@ interface IStrategyInterface is IBaseHealthCheck {
     function MIN_BUFFER_PERCENTAGE() external view returns (uint256);
     function MIN_MAX_GAS_PRICE_TO_TEND() external view returns (uint256);
     function MIN_DUST_THRESHOLD() external view returns (uint256);
+    function MAX_DUST_THRESHOLD() external view returns (uint256);
     function COLL() external view returns (address);
     function COLL_PRICE_ORACLE() external view returns (address);
     function SP() external view returns (address);

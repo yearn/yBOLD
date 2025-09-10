@@ -32,7 +32,7 @@ contract SettersTest is Setup {
         assertEq(strategy.maxGasPriceToTend(), _maxGasPriceToTend);
     }
 
-    function test_SetMaxGasPriceToTend_tooLow(
+    function test_SetMaxGasPriceToTend_TooLow(
         uint256 _maxGasPriceToTend
     ) public {
         vm.assume(_maxGasPriceToTend < strategy.MIN_MAX_GAS_PRICE_TO_TEND());
@@ -69,6 +69,7 @@ contract SettersTest is Setup {
         uint256 _dustThreshold
     ) public {
         vm.assume(_dustThreshold >= strategy.MIN_DUST_THRESHOLD());
+        vm.assume(_dustThreshold <= strategy.MAX_DUST_THRESHOLD());
 
         vm.expectRevert("!management");
         strategy.setDustThreshold(_dustThreshold);
@@ -84,6 +85,16 @@ contract SettersTest is Setup {
         vm.assume(_dustThreshold < strategy.MIN_DUST_THRESHOLD());
 
         vm.expectRevert("!minDust");
+        vm.prank(management);
+        strategy.setDustThreshold(_dustThreshold);
+    }
+
+    function test_SetDustThreshold_TooHigh(
+        uint256 _dustThreshold
+    ) public {
+        vm.assume(_dustThreshold > strategy.MAX_DUST_THRESHOLD());
+
+        vm.expectRevert("!maxDust");
         vm.prank(management);
         strategy.setDustThreshold(_dustThreshold);
     }

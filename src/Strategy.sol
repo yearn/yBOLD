@@ -52,6 +52,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice Minimum dust threshold
     uint256 public constant MIN_DUST_THRESHOLD = 1e15;
 
+    /// @notice Maximum dust threshold
+    uint256 public constant MAX_DUST_THRESHOLD = 100e18;
+
     /// @notice Collateral reward token of the Stability Pool
     ERC20 public immutable COLL;
 
@@ -164,6 +167,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         uint256 _dustThreshold
     ) external onlyManagement {
         require(_dustThreshold >= MIN_DUST_THRESHOLD, "!minDust");
+        require(_dustThreshold <= MAX_DUST_THRESHOLD, "!maxDust");
         dustThreshold = _dustThreshold;
     }
 
