@@ -247,8 +247,9 @@ contract OperationTest is Setup {
     ) public {
         test_tendTrigger_collateralGainToClaim(_amount);
 
-        vm.prank(management);
-        strategy.setMaxGasPriceToTend(0);
+        // Set `maxGasPriceToTend` to 0
+        vm.store(address(strategy), bytes32(uint256(1)), bytes32(uint256(0)));
+        assertEq(strategy.maxGasPriceToTend(), 0);
 
         (bool trigger,) = strategy.tendTrigger();
         assertFalse(trigger);

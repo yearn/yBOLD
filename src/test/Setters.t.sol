@@ -22,12 +22,24 @@ contract SettersTest is Setup {
     function test_SetMaxGasPriceToTend(
         uint256 _maxGasPriceToTend
     ) public {
+        vm.assume(_maxGasPriceToTend >= strategy.MIN_MAX_GAS_PRICE_TO_TEND());
+
         vm.expectRevert("!management");
         strategy.setMaxGasPriceToTend(_maxGasPriceToTend);
 
         vm.prank(management);
         strategy.setMaxGasPriceToTend(_maxGasPriceToTend);
         assertEq(strategy.maxGasPriceToTend(), _maxGasPriceToTend);
+    }
+
+    function test_SetMaxGasPriceToTend_tooLow(
+        uint256 _maxGasPriceToTend
+    ) public {
+        vm.assume(_maxGasPriceToTend < strategy.MIN_MAX_GAS_PRICE_TO_TEND());
+
+        vm.expectRevert("!minMaxGasPrice");
+        vm.prank(management);
+        strategy.setMaxGasPriceToTend(_maxGasPriceToTend);
     }
 
     function test_SetBufferPercentage(

@@ -16,6 +16,7 @@ interface IStrategyInterface is IBaseHealthCheck {
     ) external view returns (bool);
     function ORACLE_DOWN_BUFFER_PCT_MULTIPLIER() external view returns (uint256);
     function MIN_BUFFER_PERCENTAGE() external view returns (uint256);
+    function MIN_MAX_GAS_PRICE_TO_TEND() external view returns (uint256);
     function MIN_DUST_THRESHOLD() external view returns (uint256);
     function COLL() external view returns (address);
     function COLL_PRICE_ORACLE() external view returns (address);

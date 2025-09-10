@@ -9,7 +9,6 @@ import {IStabilityPool} from "./interfaces/IStabilityPool.sol";
 import {IAuction} from "./interfaces/IAuction.sol";
 import {IAuctionFactory} from "./interfaces/IAuctionFactory.sol";
 import {IAddressesRegistry} from "./interfaces/IAddressesRegistry.sol";
-// @todo 1. add max to dustThreshold, 2. add min to maxGasPriceToTend
 
 contract LiquityV2SPStrategy is BaseHealthCheck {
 
@@ -46,6 +45,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
     /// @notice Minimum buffer percentage for the auction starting price
     uint256 public constant MIN_BUFFER_PERCENTAGE = WAD + 1e17; // 10%
+
+    /// @notice Minimum `maxGasPriceToTend`
+    uint256 public constant MIN_MAX_GAS_PRICE_TO_TEND = 50 * 1e9; // 50 gwei
 
     /// @notice Minimum dust threshold
     uint256 public constant MIN_DUST_THRESHOLD = 1e15;
@@ -143,6 +145,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     function setMaxGasPriceToTend(
         uint256 _maxGasPriceToTend
     ) external onlyManagement {
+        require(_maxGasPriceToTend >= MIN_MAX_GAS_PRICE_TO_TEND, "!minMaxGasPrice");
         maxGasPriceToTend = _maxGasPriceToTend;
     }
 
