@@ -523,16 +523,16 @@ contract OperationTest is Setup {
         assertApproxEq(IAuction(strategy.AUCTION()).price(strategy.COLL()), _expectedPrice, 1);
     }
 
-    function test_kickAuction_wrongCaller(
-        address _wrongCaller
+    function test_kickAuction_permissionlessKick(
+        address _address
     ) public {
-        vm.assume(_wrongCaller != address(strategy));
-
         address coll = strategy.COLL();
         IAuction auction = IAuction(strategy.AUCTION());
 
-        vm.expectRevert("!governance");
-        vm.prank(_wrongCaller);
+        // Airdrop some collateral so there's something to kick
+        airdrop(ERC20(coll), address(auction), 1 ether);
+
+        vm.prank(_address);
         auction.kick(coll);
     }
 
