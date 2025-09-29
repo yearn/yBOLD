@@ -412,6 +412,8 @@ contract OperationTest is Setup {
         address coll = strategy.COLL();
         IAuction auction = IAuction(strategy.AUCTION());
 
+        uint256 expectedRemaining = _amount - _maxAuctionAmount;
+
         // Airdrop enough collateral rewards to kick a new auction
         airdrop(ERC20(coll), address(strategy), _amount);
 
@@ -421,7 +423,23 @@ contract OperationTest is Setup {
 
         assertTrue(auction.isActive(coll));
         assertEq(auction.available(coll), _maxAuctionAmount);
-        assertEq(ERC20(coll).balanceOf(address(strategy)), _amount - _maxAuctionAmount);
+        assertEq(ERC20(coll).balanceOf(address(strategy)), expectedRemaining);
+
+        // Take auction
+        vm.prank(address(auction));
+        ERC20(coll).transfer(address(420), _maxAuctionAmount);
+        assertEq(auction.available(coll), 0);
+        assertFalse(auction.isActive(coll));
+
+        uint256 newExpectedRemaining = expectedRemaining - _maxAuctionAmount;
+
+        // Kick it again
+        vm.prank(keeper);
+        strategy.tend();
+
+        assertTrue(auction.isActive(coll));
+        assertEq(auction.available(coll), _maxAuctionAmount);
+        assertEq(ERC20(coll).balanceOf(address(strategy)), newExpectedRemaining);
     }
 
     function test_tendSettleAuction(
