@@ -56,7 +56,10 @@ contract StrategyAprOracle is AprOracleBase {
     /// @notice Sets the bias for a specific collateral type
     /// @param _collateralIndex The collateral index
     /// @param _bias The bias multiplier (e.g., 1e18 = no bias, 1.2e18 = 20% increase)
-    function setCollateralBias(uint256 _collateralIndex, uint256 _bias) external onlyGovernance {
+    function setCollateralBias(
+        uint256 _collateralIndex,
+        uint256 _bias
+    ) external onlyGovernance {
         require(_bias >= 1e18, "!_bias");
         collateralBias[_collateralIndex] = _bias;
     }
@@ -84,7 +87,10 @@ contract StrategyAprOracle is AprOracleBase {
      * @param _delta The difference in debt.
      * @return . The expected apr for the strategy represented as 1e18.
      */
-    function aprAfterDebtChange(address _strategy, int256 _delta) external view override returns (uint256) {
+    function aprAfterDebtChange(
+        address _strategy,
+        int256 _delta
+    ) external view override returns (uint256) {
         uint256 _collateralIndex = _getCollateralIndex(IStrategy(_strategy).COLL());
         ITroveManager _troveManager = COLLATERAL_REGISTRY.getTroveManager(_collateralIndex);
         uint256 _count = _troveManager.sortedTroves().getSize();
@@ -115,8 +121,9 @@ contract StrategyAprOracle is AprOracleBase {
         if (_bias == 0) _bias = WAD;
 
         // slither-disable-next-line divide-before-multiply
-        return (_weightedInterestRate * SP_YIELD_SPLIT / WAD) / uint256(int256(_stabilityPoolDeposits) + _delta) * _bias
-            / WAD;
+        return
+            (_weightedInterestRate * SP_YIELD_SPLIT / WAD) / uint256(int256(_stabilityPoolDeposits) + _delta) * _bias
+                / WAD;
     }
 
     // ===============================================================

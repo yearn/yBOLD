@@ -94,7 +94,10 @@ contract DualTokenTest is Setup {
         strategy.setAllowed(address(vault));
     }
 
-    function test_boldProfit(uint256 _amount, uint16 _profitFactor) public {
+    function test_boldProfit(
+        uint256 _amount,
+        uint16 _profitFactor
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         _profitFactor = uint16(bound(uint256(_profitFactor), 10, MAX_BPS / 10));
 
@@ -294,7 +297,10 @@ contract DualTokenTest is Setup {
         assertEq(vault.balanceOf(address(accountant)), 0, "!accountant balance");
     }
 
-    function test_notAllowedCantDeposit(uint256 _amount, address _user) public {
+    function test_notAllowedCantDeposit(
+        uint256 _amount,
+        address _user
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         vm.assume(_user != address(0) && _user != address(vault));
 

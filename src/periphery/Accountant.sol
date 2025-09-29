@@ -124,7 +124,12 @@ contract Accountant {
     /// @notice Mapping vault => strategy => flag for one time healthcheck skips.
     mapping(address => mapping(address => bool)) skipHealthCheck;
 
-    constructor(address _feeManager, address _feeRecipient, uint16 defaultMaxGain, uint16 defaultMaxLoss) {
+    constructor(
+        address _feeManager,
+        address _feeRecipient,
+        uint16 defaultMaxGain,
+        uint16 defaultMaxLoss
+    ) {
         require(_feeManager != address(0), "ZERO ADDRESS");
         require(_feeRecipient != address(0), "ZERO ADDRESS");
 
@@ -147,7 +152,7 @@ contract Accountant {
         address strategy,
         uint256 gain,
         uint256 loss
-    ) public virtual onlyAddedVaults returns (uint256 totalFees, uint256 /* totalRefunds */ ) {
+    ) public virtual onlyAddedVaults returns (uint256 totalFees, uint256 /* totalRefunds */) {
         // Declare the config to use as the custom.
         Fee memory fee = customConfig[msg.sender];
 
@@ -242,7 +247,10 @@ contract Accountant {
      * @param defaultMaxGain Default max percent gain a strategy can report.
      * @param defaultMaxLoss Default max percent loss a strategy can report.
      */
-    function updateDefaultConfig(uint16 defaultMaxGain, uint16 defaultMaxLoss) external virtual onlyFeeManager {
+    function updateDefaultConfig(
+        uint16 defaultMaxGain,
+        uint16 defaultMaxLoss
+    ) external virtual onlyFeeManager {
         _updateDefaultConfig(defaultMaxGain, defaultMaxLoss);
     }
 
@@ -250,7 +258,10 @@ contract Accountant {
      * @dev Updates the Accountant's default fee config.
      *   Is used during deployment and during any future updates.
      */
-    function _updateDefaultConfig(uint16 defaultMaxGain, uint16 defaultMaxLoss) internal virtual {
+    function _updateDefaultConfig(
+        uint16 defaultMaxGain,
+        uint16 defaultMaxLoss
+    ) internal virtual {
         // Check for threshold and limit conditions.
         require(defaultMaxLoss <= MAX_BPS, "too high");
 
@@ -308,7 +319,10 @@ contract Accountant {
      * @param vault Address of the vault.
      * @param strategy Address of the strategy.
      */
-    function turnOffHealthCheck(address vault, address strategy) external virtual onlyFeeManager {
+    function turnOffHealthCheck(
+        address vault,
+        address strategy
+    ) external virtual onlyFeeManager {
         // Ensure the vault has been added.
         require(vaults[vault], "vault not added");
 
@@ -377,7 +391,10 @@ contract Accountant {
      * @param token The token to distribute.
      * @param amount amount of token to distribute.
      */
-    function distribute(address token, uint256 amount) public virtual onlyFeeManagerOrRecipient {
+    function distribute(
+        address token,
+        uint256 amount
+    ) public virtual onlyFeeManagerOrRecipient {
         ERC20(token).safeTransfer(feeRecipient, amount);
 
         emit DistributeRewards(token, amount);

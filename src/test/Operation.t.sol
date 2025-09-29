@@ -25,6 +25,7 @@ contract OperationTest is Setup {
         assertEq(strategy.performanceFeeRecipient(), performanceFeeRecipient);
         assertEq(strategy.keeper(), keeper);
         assertTrue(strategy.openDeposits());
+        assertEq(strategy.maxAuctionAmount(), type(uint256).max);
         assertEq(strategy.maxGasPriceToTend(), 200 * 1e9);
         assertEq(strategy.bufferPercentage(), 1.1e18);
         assertTrue(strategy.AUCTION() != address(0));
@@ -65,7 +66,10 @@ contract OperationTest is Setup {
         assertGe(asset.balanceOf(user), balanceBefore + _amount, "!final balance");
     }
 
-    function test_profitableReport(uint256 _amount, uint16 _profitFactor) public {
+    function test_profitableReport(
+        uint256 _amount,
+        uint16 _profitFactor
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         _profitFactor = uint16(bound(uint256(_profitFactor), 10, MAX_BPS / 10));
 
@@ -97,7 +101,10 @@ contract OperationTest is Setup {
         assertGe(asset.balanceOf(user), balanceBefore + _amount, "!final balance");
     }
 
-    function test_profitableReport_withFees(uint256 _amount, uint16 _profitFactor) public {
+    function test_profitableReport_withFees(
+        uint256 _amount,
+        uint16 _profitFactor
+    ) public {
         vm.assume(_amount > minFuzzAmount * 1e4 && _amount < maxFuzzAmount);
         _profitFactor = uint16(bound(uint256(_profitFactor), 10, MAX_BPS / 10));
 
@@ -183,7 +190,10 @@ contract OperationTest is Setup {
         assertFalse(trigger);
     }
 
-    function test_tendTrigger_collateralToSell(uint256 _amount, uint256 _airdropAmount) public {
+    function test_tendTrigger_collateralToSell(
+        uint256 _amount,
+        uint256 _airdropAmount
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         vm.assume(_airdropAmount > strategy.dustThreshold() && _airdropAmount < maxFuzzAmount);
 
@@ -195,7 +205,36 @@ contract OperationTest is Setup {
         assertTrue(trigger);
     }
 
-    function test_tendTrigger_notEnoughCollateralToSell(uint256 _amount, uint256 _airdropAmount) public {
+    function test_tendTrigger_collateralToSell_cappedByMaxAuctionAmount(
+        uint256 _amount,
+        uint256 _airdropAmount,
+        uint256 _maxAuctionAmount
+    ) public {
+        vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
+        vm.assume(_airdropAmount > strategy.dustThreshold() && _airdropAmount < maxFuzzAmount);
+        vm.assume(_maxAuctionAmount > 0 && _maxAuctionAmount <= strategy.dustThreshold());
+
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(_maxAuctionAmount);
+
+        // Deposit into strategy
+        mintAndDepositIntoStrategy(strategy, user, _amount);
+
+        airdrop(ERC20(strategy.COLL()), address(strategy), _airdropAmount);
+        (bool trigger,) = strategy.tendTrigger();
+        assertFalse(trigger);
+
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(type(uint256).max);
+
+        (trigger,) = strategy.tendTrigger();
+        assertTrue(trigger);
+    }
+
+    function test_tendTrigger_notEnoughCollateralToSell(
+        uint256 _amount,
+        uint256 _airdropAmount
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         vm.assume(_airdropAmount <= strategy.dustThreshold());
 
@@ -207,7 +246,10 @@ contract OperationTest is Setup {
         assertFalse(trigger);
     }
 
-    function test_tendTrigger_collateralToSell_basefeeTooHigh(uint256 _amount, uint256 _airdropAmount) public {
+    function test_tendTrigger_collateralToSell_basefeeTooHigh(
+        uint256 _amount,
+        uint256 _airdropAmount
+    ) public {
         test_tendTrigger_collateralToSell(_amount, _airdropAmount);
 
         vm.prank(management);
@@ -357,6 +399,31 @@ contract OperationTest is Setup {
         assertGt(strategy.estimatedTotalAssets(), _estimatedTotalAssetsBefore);
     }
 
+    function test_tendAfterCollateralGain_cappedByMaxAuctionAmount(
+        uint256 _amount,
+        uint256 _maxAuctionAmount
+    ) public {
+        vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
+        vm.assume(_maxAuctionAmount > strategy.dustThreshold() && _maxAuctionAmount < _amount);
+
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(_maxAuctionAmount);
+
+        address coll = strategy.COLL();
+        IAuction auction = IAuction(strategy.AUCTION());
+
+        // Airdrop enough collateral rewards to kick a new auction
+        airdrop(ERC20(coll), address(strategy), _amount);
+
+        // Kick it
+        vm.prank(keeper);
+        strategy.tend();
+
+        assertTrue(auction.isActive(coll));
+        assertEq(auction.available(coll), _maxAuctionAmount);
+        assertEq(ERC20(coll).balanceOf(address(strategy)), _amount - _maxAuctionAmount);
+    }
+
     function test_tendSettleAuction(
         uint256 _amount
     ) public {
@@ -426,7 +493,10 @@ contract OperationTest is Setup {
         assertEq(auction.available(coll), _amount);
     }
 
-    function test_tendSettleAuctionAndTooLowToKickNewOne(uint256 _amount, uint256 _amountTooLow) public {
+    function test_tendSettleAuctionAndTooLowToKickNewOne(
+        uint256 _amount,
+        uint256 _amountTooLow
+    ) public {
         vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
         vm.assume(_amountTooLow <= strategy.dustThreshold());
 

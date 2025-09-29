@@ -8,6 +8,7 @@ interface IStrategyInterface is IBaseHealthCheck {
 
     // Storage
     function openDeposits() external view returns (bool);
+    function maxAuctionAmount() external view returns (uint256);
     function maxGasPriceToTend() external view returns (uint256);
     function bufferPercentage() external view returns (uint256);
     function dustThreshold() external view returns (uint256);
@@ -28,6 +29,9 @@ interface IStrategyInterface is IBaseHealthCheck {
 
     // Management
     function allowDeposits() external;
+    function setMaxAuctionAmount(
+        uint256 _maxAuctionAmount
+    ) external;
     function setMaxGasPriceToTend(
         uint256 _maxGasPriceToTend
     ) external;

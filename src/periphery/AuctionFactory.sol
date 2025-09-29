@@ -44,7 +44,10 @@ contract AuctionFactory is Clonable {
      * @param _receiver Address that will receive the funds in the auction.
      * @return _newAuction Address of the newly created auction contract.
      */
-    function createNewAuction(address _want, address _receiver) external returns (address) {
+    function createNewAuction(
+        address _want,
+        address _receiver
+    ) external returns (address) {
         return _createNewAuction(_want, _receiver, msg.sender, DEFAULT_AUCTION_LENGTH, DEFAULT_STARTING_PRICE);
     }
 
@@ -55,7 +58,11 @@ contract AuctionFactory is Clonable {
      * @param _governance Address allowed to enable and disable auctions.
      * @return _newAuction Address of the newly created auction contract.
      */
-    function createNewAuction(address _want, address _receiver, address _governance) external returns (address) {
+    function createNewAuction(
+        address _want,
+        address _receiver,
+        address _governance
+    ) external returns (address) {
         return _createNewAuction(_want, _receiver, _governance, DEFAULT_AUCTION_LENGTH, DEFAULT_STARTING_PRICE);
     }
 

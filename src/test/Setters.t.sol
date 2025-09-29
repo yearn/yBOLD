@@ -19,6 +19,25 @@ contract SettersTest is Setup {
         assertTrue(strategy.openDeposits());
     }
 
+    function test_setMaxAuctionAmount(
+        uint256 _maxAuctionAmount
+    ) public {
+        vm.assume(_maxAuctionAmount > 0);
+
+        vm.expectRevert("!management");
+        strategy.setMaxAuctionAmount(_maxAuctionAmount);
+
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(_maxAuctionAmount);
+        assertEq(strategy.maxAuctionAmount(), _maxAuctionAmount);
+    }
+
+    function test_setMaxAuctionAmount_zeroAmount() public {
+        vm.expectRevert("!maxAuctionAmount");
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(0);
+    }
+
     function test_SetMaxGasPriceToTend(
         uint256 _maxGasPriceToTend
     ) public {

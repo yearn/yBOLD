@@ -3,6 +3,7 @@ pragma solidity 0.8.23;
 
 import {BaseHealthCheck, BaseStrategy, ERC20} from "@periphery/Bases/HealthCheck/BaseHealthCheck.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {IPriceFeed} from "./interfaces/IPriceFeed.sol";
 import {IStabilityPool} from "./interfaces/IStabilityPool.sol";
@@ -20,6 +21,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
     /// @notice Whether deposits are open to everyone
     bool public openDeposits;
+
+    /// @notice Maximum amount of collateral that can be auctioned at once
+    uint256 public maxAuctionAmount;
 
     /// @notice Max base fee (in gwei) for a tend
     uint256 public maxGasPriceToTend;
@@ -91,6 +95,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         AUCTION = AUCTION_FACTORY.createNewAuction(_asset);
         AUCTION.enable(address(COLL));
 
+        maxAuctionAmount = type(uint256).max;
         maxGasPriceToTend = 200 * 1e9;
         bufferPercentage = MIN_BUFFER_PERCENTAGE;
         dustThreshold = MIN_DUST_THRESHOLD;
@@ -135,6 +140,15 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @dev This is irreversible
     function allowDeposits() external onlyManagement {
         openDeposits = true;
+    }
+
+    /// @notice Set the maximum amount of collateral to auction at once
+    /// @param _maxAuctionAmount New maximum auction amount
+    function setMaxAuctionAmount(
+        uint256 _maxAuctionAmount
+    ) external onlyManagement {
+        require(_maxAuctionAmount > 0, "!maxAuctionAmount");
+        maxAuctionAmount = _maxAuctionAmount;
     }
 
     /// @notice Set the maximum gas price for tending
@@ -235,7 +249,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         if (isCollateralGainToClaim()) claim();
         if (AUCTION.isActive(address(COLL)) && AUCTION.available(address(COLL)) == 0) AUCTION.settle(address(COLL));
 
-        uint256 _toAuction = COLL.balanceOf(address(this));
+        uint256 _toAuction = Math.min(COLL.balanceOf(address(this)), maxAuctionAmount);
         uint256 _available = COLL.balanceOf(address(AUCTION)) + _toAuction;
         if (_available > dustThreshold) {
             (uint256 _price, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
@@ -263,12 +277,12 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         // If active auction, wait
         if (AUCTION.available(address(COLL)) > 0) return false;
 
+        // Determine how much collateral we already have and can sell
+        uint256 _toAuction = Math.min(COLL.balanceOf(address(this)), maxAuctionAmount);
+        uint256 _available = COLL.balanceOf(address(AUCTION)) + _toAuction;
+
         // If base fee is acceptable and there's collateral to sell, tend to minimize exchange rate exposure
-        return block.basefee <= maxGasPriceToTend
-            && (
-                isCollateralGainToClaim()
-                    || COLL.balanceOf(address(this)) + COLL.balanceOf(address(AUCTION)) > dustThreshold
-            );
+        return block.basefee <= maxGasPriceToTend && (isCollateralGainToClaim() || _available > dustThreshold);
     }
 
 }

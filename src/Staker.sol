@@ -21,7 +21,10 @@ contract LV2SPStakerStrategy is BaseHealthCheck {
 
     /// @param _vault Address of the strategy's underlying vault
     /// @param _name Name of the strategy
-    constructor(address _vault, string memory _name) BaseHealthCheck(_vault, _name) {
+    constructor(
+        address _vault,
+        string memory _name
+    ) BaseHealthCheck(_vault, _name) {
         ACCOUNTANT = IAccountant(IVault(_vault).accountant());
         require(address(ACCOUNTANT) != address(0), "!accountant");
     }
