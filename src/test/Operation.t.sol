@@ -399,6 +399,38 @@ contract OperationTest is Setup {
         assertGt(strategy.estimatedTotalAssets(), _estimatedTotalAssetsBefore);
     }
 
+    function test_tendActiveAuction(
+        uint256 _amount
+    ) public {
+        vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
+
+        address coll = strategy.COLL();
+        IAuction auction = IAuction(strategy.AUCTION());
+
+        // Airdrop enough collateral rewards to kick a new auction
+        airdrop(ERC20(coll), strategy.AUCTION(), _amount);
+
+        // Kick it
+        vm.prank(keeper);
+        strategy.tend();
+
+        assertTrue(auction.isActive(coll));
+        assertEq(auction.available(coll), _amount);
+
+        uint256 startingPriceBefore = auction.startingPrice();
+
+        // Airdrop more collateral rewards so that we need to kick again
+        airdrop(ERC20(coll), strategy.AUCTION(), _amount);
+
+        // Kick again, with new lot
+        vm.prank(keeper);
+        strategy.tend();
+
+        assertTrue(auction.isActive(coll));
+        assertEq(auction.available(coll), _amount * 2);
+        assertApproxEqAbs(auction.startingPrice(), startingPriceBefore * 2, 1);
+    }
+
     function test_tendAfterCollateralGain_cappedByMaxAuctionAmount(
         uint256 _amount,
         uint256 _maxAuctionAmount
@@ -577,16 +609,16 @@ contract OperationTest is Setup {
         assertApproxEq(IAuction(strategy.AUCTION()).price(strategy.COLL()), _expectedPrice, 1);
     }
 
-    function test_kickAuction_wrongCaller(
-        address _wrongCaller
+    function test_kickAuction_permissionlessKick(
+        address _address
     ) public {
-        vm.assume(_wrongCaller != address(strategy));
-
         address coll = strategy.COLL();
         IAuction auction = IAuction(strategy.AUCTION());
 
-        vm.expectRevert("!governance");
-        vm.prank(_wrongCaller);
+        // Airdrop some collateral so there's something to kick
+        airdrop(ERC20(coll), address(auction), 1 ether);
+
+        vm.prank(_address);
         auction.kick(coll);
     }
 

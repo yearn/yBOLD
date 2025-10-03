@@ -247,7 +247,12 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         uint256 /*_totalIdle*/
     ) internal override {
         if (isCollateralGainToClaim()) claim();
-        if (AUCTION.isActive(address(COLL)) && AUCTION.available(address(COLL)) == 0) AUCTION.settle(address(COLL));
+
+        // If there's an active auction, sweep if needed, and settle
+        if (AUCTION.isActive(address(COLL))) {
+            if (AUCTION.available(address(COLL)) > 0) AUCTION.sweep(address(COLL));
+            AUCTION.settle(address(COLL));
+        }
 
         uint256 _toAuction = Math.min(COLL.balanceOf(address(this)), maxAuctionAmount);
         uint256 _available = COLL.balanceOf(address(AUCTION)) + _toAuction;
@@ -274,10 +279,10 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     function _tendTrigger() internal view override returns (bool) {
         if (TokenizedStrategy.totalAssets() == 0) return false;
 
-        // If active auction, wait
-        if (AUCTION.available(address(COLL)) > 0) return false;
+        // If _real_ active auction, wait
+        if (AUCTION.available(address(COLL)) > dustThreshold) return false;
 
-        // Determine how much collateral we already have and can sell
+        // Determine how much collateral we can kick
         uint256 _toAuction = Math.min(COLL.balanceOf(address(this)), maxAuctionAmount);
         uint256 _available = COLL.balanceOf(address(AUCTION)) + _toAuction;
 

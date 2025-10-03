@@ -6,7 +6,6 @@ import {ExtendedTest} from "./ExtendedTest.sol";
 
 import {LiquityV2SPStrategy as Strategy, ERC20} from "../../Strategy.sol";
 import {StrategyFactory} from "../../StrategyFactory.sol";
-import {AuctionFactory} from "../../periphery/AuctionFactory.sol";
 import {IStrategyInterface} from "../../interfaces/IStrategyInterface.sol";
 import {AggregatorV3Interface} from "../../interfaces/AggregatorV3Interface.sol";
 import {IStabilityPool} from "../../interfaces/IStabilityPool.sol";
@@ -36,7 +35,6 @@ contract Setup is ExtendedTest, IEvents {
     IStrategyInterface public strategy;
 
     StrategyFactory public strategyFactory;
-    AuctionFactory public auctionFactory;
 
     mapping(string => address) public tokenAddrs;
 
@@ -54,6 +52,7 @@ contract Setup is ExtendedTest, IEvents {
     address public stabilityPool = address(0x5721cbbd64fc7Ae3Ef44A0A3F9a790A9264Cf9BF); // WETH Stability Pool
     address public collateralPriceOracle = address(0xCC5F8102eb670c89a4a3c567C13851260303c24F); // Liquity WETH Price Oracle
     address public priceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
+    address public auctionFactory = address(0xbC587a495420aBB71Bbd40A0e291B64e80117526); // Newest Auction Factory
 
     // Address of the real deployed Factory
     address public factory;
@@ -70,7 +69,7 @@ contract Setup is ExtendedTest, IEvents {
     uint256 public profitMaxUnlockTime = 10 days;
 
     function setUp() public virtual {
-        uint256 _blockNumber = 22_627_836; // Caching for faster tests
+        uint256 _blockNumber = 23_499_885; // Caching for faster tests
         vm.selectFork(vm.createFork(vm.envString("ETH_RPC_URL"), _blockNumber));
 
         _setTokenAddrs();
@@ -81,9 +80,8 @@ contract Setup is ExtendedTest, IEvents {
         // Set decimals
         decimals = asset.decimals();
 
-        auctionFactory = new AuctionFactory();
         strategyFactory =
-            new StrategyFactory(management, performanceFeeRecipient, keeper, emergencyAdmin, address(auctionFactory));
+            new StrategyFactory(management, performanceFeeRecipient, keeper, emergencyAdmin, auctionFactory);
 
         // Deploy strategy and set variables
         strategy = IStrategyInterface(setUpStrategy());

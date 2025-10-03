@@ -26,5 +26,8 @@ interface IAuction {
     function settle(
         address _token
     ) external;
+    function sweep(
+        address _token
+    ) external;
 
 }
