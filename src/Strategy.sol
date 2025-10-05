@@ -338,9 +338,6 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         // If no active auction, return false
         if (AUCTION.available(address(COLL)) <= dustThreshold) return false;
 
-        // Price per unit of collateral required by the auction
-        uint256 _auctionPrice = AUCTION.getAmountNeeded(address(COLL), WAD);
-
         // Get the current market price of the collateral from Chainlink
         (, int256 _answer,,,) = CHAINLINK_ORACLE.latestRoundData();
         require(_answer > 0, "!answer");
@@ -350,6 +347,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
         // Our minimum acceptable price (some % below market price)
         uint256 _minPrice = _marketPrice * _minAuctionPriceBps / MAX_BPS;
+
+        // Price per unit of collateral required by the auction
+        uint256 _auctionPrice = AUCTION.getAmountNeeded(address(COLL), WAD);
 
         // Return true if auction price is below our minimum acceptable price
         return _auctionPrice < _minPrice;
