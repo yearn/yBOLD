@@ -51,7 +51,7 @@ contract Setup is ExtendedTest, IEvents {
     address public addressesRegistry = address(0x20F7C9ad66983F6523a0881d0f82406541417526); // WETH Address Registry
     address public stabilityPool = address(0x5721cbbd64fc7Ae3Ef44A0A3F9a790A9264Cf9BF); // WETH Stability Pool
     address public collateralPriceOracle = address(0xCC5F8102eb670c89a4a3c567C13851260303c24F); // Liquity WETH Price Oracle
-    address public priceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
+    address public collateralChainlinkPriceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
     address public auctionFactory = address(0xbC587a495420aBB71Bbd40A0e291B64e80117526); // Newest Auction Factory
 
     // Address of the real deployed Factory
@@ -199,7 +199,7 @@ contract Setup is ExtendedTest, IEvents {
     }
 
     function ethPrice() public view returns (uint256) {
-        (, int256 price,,,) = AggregatorV3Interface(priceOracle).latestRoundData();
+        (, int256 price,,,) = AggregatorV3Interface(collateralChainlinkPriceOracle).latestRoundData();
         return uint256(price);
     }
 
@@ -218,6 +218,94 @@ contract Setup is ExtendedTest, IEvents {
 
         vm.prank(management);
         strategy.setPerformanceFee(_performanceFee);
+    }
+
+    function setMinAuctionPriceBps(
+        uint256 _minAuctionPriceBps
+    ) public {
+        vm.startPrank(management);
+        strategy.setStrategyParameters(
+            _minAuctionPriceBps,
+            strategy.bufferPercentage(),
+            strategy.maxAuctionAmount(),
+            strategy.maxGasPriceToTend(),
+            strategy.dustThreshold(),
+            false
+        );
+        vm.stopPrank();
+    }
+
+    function setBufferPercentage(
+        uint256 _bufferPercentage
+    ) public {
+        vm.startPrank(management);
+        strategy.setStrategyParameters(
+            strategy.minAuctionPriceBps(),
+            _bufferPercentage,
+            strategy.maxAuctionAmount(),
+            strategy.maxGasPriceToTend(),
+            strategy.dustThreshold(),
+            false
+        );
+        vm.stopPrank();
+    }
+
+    function setMaxAuctionAmount(
+        uint256 _maxAuctionAmount
+    ) public {
+        vm.startPrank(management);
+        strategy.setStrategyParameters(
+            strategy.minAuctionPriceBps(),
+            strategy.bufferPercentage(),
+            _maxAuctionAmount,
+            strategy.maxGasPriceToTend(),
+            strategy.dustThreshold(),
+            false
+        );
+        vm.stopPrank();
+    }
+
+    function setMaxGasPriceToTend(
+        uint256 _maxGasPriceToTend
+    ) public {
+        vm.startPrank(management);
+        strategy.setStrategyParameters(
+            strategy.minAuctionPriceBps(),
+            strategy.bufferPercentage(),
+            strategy.maxAuctionAmount(),
+            _maxGasPriceToTend,
+            strategy.dustThreshold(),
+            false
+        );
+        vm.stopPrank();
+    }
+
+    function setDustThreshold(
+        uint256 _dustThreshold
+    ) public {
+        vm.startPrank(management);
+        strategy.setStrategyParameters(
+            strategy.minAuctionPriceBps(),
+            strategy.bufferPercentage(),
+            strategy.maxAuctionAmount(),
+            strategy.maxGasPriceToTend(),
+            _dustThreshold,
+            false
+        );
+        vm.stopPrank();
+    }
+
+    function unblockAuctions() public {
+        vm.startPrank(management);
+        strategy.setStrategyParameters(
+            strategy.minAuctionPriceBps(),
+            strategy.bufferPercentage(),
+            strategy.maxAuctionAmount(),
+            strategy.maxGasPriceToTend(),
+            strategy.dustThreshold(),
+            true
+        );
+        vm.stopPrank();
     }
 
     function _setTokenAddrs() internal {

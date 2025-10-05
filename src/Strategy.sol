@@ -5,6 +5,7 @@ import {BaseHealthCheck, BaseStrategy, ERC20} from "@periphery/Bases/HealthCheck
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
+import {AggregatorV3Interface} from "./interfaces/AggregatorV3Interface.sol";
 import {IPriceFeed} from "./interfaces/IPriceFeed.sol";
 import {IStabilityPool} from "./interfaces/IStabilityPool.sol";
 import {IAuction} from "./interfaces/IAuction.sol";
@@ -21,6 +22,13 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
     /// @notice Whether deposits are open to everyone
     bool public openDeposits;
+
+    /// @notice Whether auctioning collateral rewards is currently blocked
+    bool public auctionsBlocked;
+
+    /// @notice Minimum acceptable auction price expressed in basis points of the oracle price
+    /// @dev Set to 0 to disable the check
+    uint256 public minAuctionPriceBps;
 
     /// @notice Maximum amount of collateral that can be auctioned at once
     uint256 public maxAuctionAmount;
@@ -44,11 +52,17 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice WAD constant
     uint256 private constant WAD = 1e18;
 
+    /// @notice Multiplier to scale 8-decimal Chainlink price to 18 decimals
+    uint256 private constant CHAINLINK_TO_WAD = 1e10;
+
     /// @notice Auction starting price buffer percentage increase when the oracle is down
     uint256 public constant ORACLE_DOWN_BUFFER_PCT_MULTIPLIER = 1_000; // 1000x
 
     /// @notice Minimum buffer percentage for the auction starting price
-    uint256 public constant MIN_BUFFER_PERCENTAGE = WAD + 1e17; // 10%
+    uint256 public constant MIN_BUFFER_PERCENTAGE = WAD + 15e16; // 15%
+
+    /// @notice Minimum `maxGasPriceToTend`
+    uint256 public constant MIN_MAX_GAS_PRICE_TO_TEND = 50 * 1e9; // 50 gwei
 
     /// @notice Minimum dust threshold
     uint256 public constant MIN_DUST_THRESHOLD = 1e15;
@@ -57,8 +71,15 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     ERC20 public immutable COLL;
 
     /// @notice Liquity's price oracle for the collateral token
-    ///         Assumes the price feed is using 18 decimals
+    /// @dev Assumes the price feed is using 18 decimals
     IPriceFeed public immutable COLL_PRICE_ORACLE;
+
+    /// @notice Direct reference to the underlying Chainlink price feed used by `COLL_PRICE_ORACLE`
+    /// @dev This feed provides a read-only price for the collateral asset without
+    ///      performing Liquity's internal validity or heartbeat checks
+    /// @dev On Liquity’s rETH / wstETH branches, this feed returns the ETH/USD price rather than
+    ///      the collateral/USD price
+    AggregatorV3Interface public immutable CHAINLINK_ORACLE;
 
     /// @notice Stability Pool contract
     IStabilityPool public immutable SP;
@@ -87,6 +108,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         (, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
         require(!_isOracleDown && COLL_PRICE_ORACLE.priceSource() == IPriceFeed.PriceSource.primary, "!oracle");
 
+        CHAINLINK_ORACLE = COLL_PRICE_ORACLE.ethUsdOracle().aggregator;
+        require(CHAINLINK_ORACLE.decimals() == 8, "!decimals");
+
         SP = IAddressesRegistry(_addressesRegistry).stabilityPool();
         require(SP.boldToken() == _asset, "!sp");
         COLL = ERC20(SP.collToken());
@@ -95,6 +119,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         AUCTION = AUCTION_FACTORY.createNewAuction(_asset);
         AUCTION.enable(address(COLL));
 
+        minAuctionPriceBps = 9_500; // 95%
         maxAuctionAmount = type(uint256).max;
         maxGasPriceToTend = 200 * 1e9;
         bufferPercentage = MIN_BUFFER_PERCENTAGE;
@@ -142,39 +167,33 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         openDeposits = true;
     }
 
-    /// @notice Set the maximum amount of collateral to auction at once
-    /// @param _maxAuctionAmount New maximum auction amount
-    function setMaxAuctionAmount(
-        uint256 _maxAuctionAmount
+    /// @notice Update strategy parameters
+    /// @param _minAuctionPriceBps New minimum acceptable auction price in BPS of the oracle price (0 to disable)
+    /// @param _bufferPercentage New buffer percentage for auction starting price
+    /// @param _maxAuctionAmount New maximum collateral amount to auction at once
+    /// @param _maxGasPriceToTend New maximum gas price for tending
+    /// @param _dustThreshold New dust threshold for ignoring small amounts
+    /// @param _unblockAuctions Set to true to unblock auctions
+    function setStrategyParameters(
+        uint256 _minAuctionPriceBps,
+        uint256 _bufferPercentage,
+        uint256 _maxAuctionAmount,
+        uint256 _maxGasPriceToTend,
+        uint256 _dustThreshold,
+        bool _unblockAuctions
     ) external onlyManagement {
-        require(_maxAuctionAmount > 0, "!maxAuctionAmount");
-        maxAuctionAmount = _maxAuctionAmount;
-    }
-
-    /// @notice Set the maximum gas price for tending
-    /// @param _maxGasPriceToTend New maximum gas price
-    function setMaxGasPriceToTend(
-        uint256 _maxGasPriceToTend
-    ) external onlyManagement {
-        maxGasPriceToTend = _maxGasPriceToTend;
-    }
-
-    /// @notice Set the buffer percentage for the auction starting price
-    /// @param _bufferPercentage New buffer percentage
-    function setBufferPercentage(
-        uint256 _bufferPercentage
-    ) external onlyManagement {
+        require(_minAuctionPriceBps < MAX_BPS, "!minAuctionPriceBps");
         require(_bufferPercentage >= MIN_BUFFER_PERCENTAGE, "!minBuffer");
-        bufferPercentage = _bufferPercentage;
-    }
-
-    /// @notice Set the dust threshold for the strategy
-    /// @param _dustThreshold New dust threshold
-    function setDustThreshold(
-        uint256 _dustThreshold
-    ) external onlyManagement {
+        require(_maxAuctionAmount > 0, "!maxAuctionAmount");
+        require(_maxGasPriceToTend >= MIN_MAX_GAS_PRICE_TO_TEND, "!minMaxGasPrice");
         require(_dustThreshold >= MIN_DUST_THRESHOLD, "!minDust");
+
+        minAuctionPriceBps = _minAuctionPriceBps;
+        bufferPercentage = _bufferPercentage;
+        maxAuctionAmount = _maxAuctionAmount;
+        maxGasPriceToTend = _maxGasPriceToTend;
         dustThreshold = _dustThreshold;
+        if (_unblockAuctions) auctionsBlocked = false;
     }
 
     /// @notice Allow a specific address to deposit
@@ -248,11 +267,17 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     ) internal override {
         if (isCollateralGainToClaim()) claim();
 
+        // If auction price is too low, block auctions until management intervenes
+        if (_isAuctionPriceTooLow()) auctionsBlocked = true;
+
         // If there's an active auction, sweep if needed, and settle
         if (AUCTION.isActive(address(COLL))) {
             if (AUCTION.available(address(COLL)) > 0) AUCTION.sweep(address(COLL));
             AUCTION.settle(address(COLL));
         }
+
+        // If we blocked auctions, stop here
+        if (auctionsBlocked) return;
 
         uint256 _toAuction = Math.min(COLL.balanceOf(address(this)), maxAuctionAmount);
         uint256 _available = COLL.balanceOf(address(AUCTION)) + _toAuction;
@@ -276,10 +301,21 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     // ===============================================================
 
     /// @inheritdoc BaseStrategy
+    /// @dev Tend is triggered if:
+    ///  - auctions are not blocked,
+    ///  - and either:
+    ///    * we need to stop an unhealthy auction, OR
+    ///    * basefee <= maxGasPriceToTend and we have gains or collateral to auction
     function _tendTrigger() internal view override returns (bool) {
         if (TokenizedStrategy.totalAssets() == 0) return false;
 
-        // If _real_ active auction, wait
+        // If auctions are blocked, do nothing
+        if (auctionsBlocked) return false;
+
+        // Check if active auction price is below our acceptable threshold
+        if (_isAuctionPriceTooLow()) return true;
+
+        // If active auction, wait
         if (AUCTION.available(address(COLL)) > dustThreshold) return false;
 
         // Determine how much collateral we can kick
@@ -288,6 +324,35 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
         // If base fee is acceptable and there's collateral to sell, tend to minimize exchange rate exposure
         return block.basefee <= maxGasPriceToTend && (isCollateralGainToClaim() || _available > dustThreshold);
+    }
+
+    /// @notice Used to trigger emergency stopping of unhealthy auctions
+    /// @dev Returns true if there is an active auction and its price is
+    ///      below our minimum acceptable price
+    function _isAuctionPriceTooLow() internal view returns (bool) {
+        uint256 _minAuctionPriceBps = minAuctionPriceBps;
+
+        // If zero, the check is disabled
+        if (_minAuctionPriceBps == 0) return false;
+
+        // If no active auction, return false
+        if (AUCTION.available(address(COLL)) <= dustThreshold) return false;
+
+        // Price per unit of collateral required by the auction
+        uint256 _auctionPrice = AUCTION.getAmountNeeded(address(COLL), WAD);
+
+        // Get the current market price of the collateral from Chainlink
+        (, int256 _answer,,,) = CHAINLINK_ORACLE.latestRoundData();
+        require(_answer > 0, "!answer");
+
+        // Scale the answer to 18 decimals
+        uint256 _marketPrice = uint256(_answer) * CHAINLINK_TO_WAD;
+
+        // Our minimum acceptable price (some % below market price)
+        uint256 _minPrice = _marketPrice * _minAuctionPriceBps / MAX_BPS;
+
+        // Return true if auction price is below our minimum acceptable price
+        return _auctionPrice < _minPrice;
     }
 
 }

@@ -8,6 +8,8 @@ interface IStrategyInterface is IBaseHealthCheck {
 
     // Storage
     function openDeposits() external view returns (bool);
+    function auctionsBlocked() external view returns (bool);
+    function minAuctionPriceBps() external view returns (uint256);
     function maxAuctionAmount() external view returns (uint256);
     function maxGasPriceToTend() external view returns (uint256);
     function bufferPercentage() external view returns (uint256);
@@ -17,9 +19,11 @@ interface IStrategyInterface is IBaseHealthCheck {
     ) external view returns (bool);
     function ORACLE_DOWN_BUFFER_PCT_MULTIPLIER() external view returns (uint256);
     function MIN_BUFFER_PERCENTAGE() external view returns (uint256);
+    function MIN_MAX_GAS_PRICE_TO_TEND() external view returns (uint256);
     function MIN_DUST_THRESHOLD() external view returns (uint256);
     function COLL() external view returns (address);
     function COLL_PRICE_ORACLE() external view returns (address);
+    function CHAINLINK_ORACLE() external view returns (address);
     function SP() external view returns (address);
     function AUCTION() external view returns (address);
 
@@ -29,17 +33,13 @@ interface IStrategyInterface is IBaseHealthCheck {
 
     // Management
     function allowDeposits() external;
-    function setMaxAuctionAmount(
-        uint256 _maxAuctionAmount
-    ) external;
-    function setMaxGasPriceToTend(
-        uint256 _maxGasPriceToTend
-    ) external;
-    function setBufferPercentage(
-        uint256 _bufferPercentage
-    ) external;
-    function setDustThreshold(
-        uint256 _dustThreshold
+    function setStrategyParameters(
+        uint256 _minAuctionPriceBps,
+        uint256 _bufferPercentage,
+        uint256 _maxAuctionAmount,
+        uint256 _maxGasPriceToTend,
+        uint256 _dustThreshold,
+        bool _unblockAuctions
     ) external;
     function setAllowed(
         address _address

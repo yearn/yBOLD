@@ -19,33 +19,114 @@ contract SettersTest is Setup {
         assertTrue(strategy.openDeposits());
     }
 
+    function test_setStrategyParameters(
+        uint256 _minAuctionPriceBps,
+        uint256 _bufferPercentage,
+        uint256 _maxAuctionAmount,
+        uint256 _maxGasPriceToTend,
+        uint256 _dustThreshold
+    ) public {
+        vm.assume(_minAuctionPriceBps < MAX_BPS);
+        vm.assume(_bufferPercentage >= strategy.MIN_BUFFER_PERCENTAGE());
+        vm.assume(_maxAuctionAmount > 0);
+        vm.assume(_maxGasPriceToTend >= strategy.MIN_MAX_GAS_PRICE_TO_TEND());
+        vm.assume(_dustThreshold >= strategy.MIN_DUST_THRESHOLD());
+
+        vm.prank(management);
+        strategy.setStrategyParameters(
+            _minAuctionPriceBps, _bufferPercentage, _maxAuctionAmount, _maxGasPriceToTend, _dustThreshold, false
+        );
+
+        assertEq(strategy.minAuctionPriceBps(), _minAuctionPriceBps);
+        assertEq(strategy.bufferPercentage(), _bufferPercentage);
+        assertEq(strategy.maxAuctionAmount(), _maxAuctionAmount);
+        assertEq(strategy.maxGasPriceToTend(), _maxGasPriceToTend);
+        assertEq(strategy.dustThreshold(), _dustThreshold);
+        assertFalse(strategy.auctionsBlocked());
+    }
+
+    function test_setStrategyParameters_reverts(
+        uint256 _wrongMinAuctionPriceBps,
+        uint256 _wrongBufferPercentage,
+        uint256 _wrongMaxGasPriceToTend,
+        uint256 _wrongDustThreshold
+    ) public {
+        vm.assume(_wrongMinAuctionPriceBps >= MAX_BPS);
+        vm.assume(_wrongBufferPercentage < strategy.MIN_BUFFER_PERCENTAGE());
+        vm.assume(_wrongMaxGasPriceToTend < strategy.MIN_MAX_GAS_PRICE_TO_TEND());
+        vm.assume(_wrongDustThreshold < strategy.MIN_DUST_THRESHOLD());
+
+        uint256 _minAuctionPriceBps = strategy.minAuctionPriceBps();
+        uint256 _bufferPercentage = strategy.bufferPercentage();
+        uint256 _maxAuctionAmount = strategy.maxAuctionAmount();
+        uint256 _maxGasPriceToTend = strategy.maxGasPriceToTend();
+        uint256 _dustThreshold = strategy.dustThreshold();
+
+        vm.startPrank(management);
+
+        vm.expectRevert("!minAuctionPriceBps");
+        strategy.setStrategyParameters(
+            _wrongMinAuctionPriceBps, _bufferPercentage, _maxAuctionAmount, _maxGasPriceToTend, _dustThreshold, false
+        );
+
+        vm.expectRevert("!minBuffer");
+        strategy.setStrategyParameters(
+            _minAuctionPriceBps, _wrongBufferPercentage, _maxAuctionAmount, _maxGasPriceToTend, _dustThreshold, false
+        );
+
+        vm.expectRevert("!maxAuctionAmount");
+        strategy.setStrategyParameters(
+            _minAuctionPriceBps, _bufferPercentage, 0, _maxGasPriceToTend, _dustThreshold, false
+        );
+
+        vm.expectRevert("!minMaxGasPrice");
+        strategy.setStrategyParameters(
+            _minAuctionPriceBps, _bufferPercentage, _maxAuctionAmount, _wrongMaxGasPriceToTend, _dustThreshold, false
+        );
+
+        vm.expectRevert("!minDust");
+        strategy.setStrategyParameters(
+            _minAuctionPriceBps, _bufferPercentage, _maxAuctionAmount, _maxGasPriceToTend, _wrongDustThreshold, false
+        );
+        vm.stopPrank();
+    }
+
+    function test_setStrategyParameters_wrongCaller(
+        address _wrongCaller
+    ) public {
+        vm.assume(_wrongCaller != management);
+        vm.expectRevert("!management");
+        vm.prank(_wrongCaller);
+        strategy.setStrategyParameters(0, 0, 0, 0, 0, false);
+    }
+
+    function test_unblockAuctions() public {
+        assertFalse(strategy.auctionsBlocked());
+        unblockAuctions();
+        assertFalse(strategy.auctionsBlocked());
+    }
+
+    function test_setMinAuctionPriceBps(
+        uint256 _minAuctionPriceBps
+    ) public {
+        vm.assume(_minAuctionPriceBps < MAX_BPS);
+        setMinAuctionPriceBps(_minAuctionPriceBps);
+        assertEq(strategy.minAuctionPriceBps(), _minAuctionPriceBps);
+    }
+
     function test_setMaxAuctionAmount(
         uint256 _maxAuctionAmount
     ) public {
         vm.assume(_maxAuctionAmount > 0);
-
-        vm.expectRevert("!management");
-        strategy.setMaxAuctionAmount(_maxAuctionAmount);
-
-        vm.prank(management);
-        strategy.setMaxAuctionAmount(_maxAuctionAmount);
+        setMaxAuctionAmount(_maxAuctionAmount);
         assertEq(strategy.maxAuctionAmount(), _maxAuctionAmount);
-    }
-
-    function test_setMaxAuctionAmount_zeroAmount() public {
-        vm.expectRevert("!maxAuctionAmount");
-        vm.prank(management);
-        strategy.setMaxAuctionAmount(0);
     }
 
     function test_setMaxGasPriceToTend(
         uint256 _maxGasPriceToTend
     ) public {
-        vm.expectRevert("!management");
-        strategy.setMaxGasPriceToTend(_maxGasPriceToTend);
-
-        vm.prank(management);
-        strategy.setMaxGasPriceToTend(_maxGasPriceToTend);
+        vm.assume(_maxGasPriceToTend >= strategy.MIN_MAX_GAS_PRICE_TO_TEND());
+        setMaxGasPriceToTend(_maxGasPriceToTend);
         assertEq(strategy.maxGasPriceToTend(), _maxGasPriceToTend);
     }
 
@@ -53,46 +134,16 @@ contract SettersTest is Setup {
         uint256 _bufferPercentage
     ) public {
         vm.assume(_bufferPercentage >= strategy.MIN_BUFFER_PERCENTAGE());
-
-        vm.expectRevert("!management");
-        strategy.setBufferPercentage(_bufferPercentage);
-
-        vm.prank(management);
-        strategy.setBufferPercentage(_bufferPercentage);
+        setBufferPercentage(_bufferPercentage);
         assertEq(strategy.bufferPercentage(), _bufferPercentage);
-    }
-
-    function test_setBufferPercentage_TooLow(
-        uint256 _bufferPercentage
-    ) public {
-        vm.assume(_bufferPercentage < strategy.MIN_BUFFER_PERCENTAGE());
-
-        vm.expectRevert("!minBuffer");
-        vm.prank(management);
-        strategy.setBufferPercentage(_bufferPercentage);
     }
 
     function test_setDustThreshold(
         uint256 _dustThreshold
     ) public {
         vm.assume(_dustThreshold >= strategy.MIN_DUST_THRESHOLD());
-
-        vm.expectRevert("!management");
-        strategy.setDustThreshold(_dustThreshold);
-
-        vm.prank(management);
-        strategy.setDustThreshold(_dustThreshold);
+        setDustThreshold(_dustThreshold);
         assertEq(strategy.dustThreshold(), _dustThreshold);
-    }
-
-    function test_setDustThreshold_tooLow(
-        uint256 _dustThreshold
-    ) public {
-        vm.assume(_dustThreshold < strategy.MIN_DUST_THRESHOLD());
-
-        vm.expectRevert("!minDust");
-        vm.prank(management);
-        strategy.setDustThreshold(_dustThreshold);
     }
 
     function test_setAllowed(

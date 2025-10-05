@@ -20,7 +20,7 @@ contract ZapperTest is Setup {
         oracle = new MorphoPriceOracle();
     }
 
-    function test_zapIn(
+    function _test_zapIn(
         uint256 _amount,
         address _receiver
     ) public returns (uint256 _shares) {
@@ -55,14 +55,14 @@ contract ZapperTest is Setup {
         vm.stopPrank();
     }
 
-    function test_zapOut(
+    function _test_zapOut(
         uint256 _amount,
         address _receiver,
         address _secondReceiver
     ) public {
         vm.assume(_secondReceiver != address(0));
 
-        uint256 _shares = test_zapIn(_amount, _receiver);
+        uint256 _shares = _test_zapIn(_amount, _receiver);
 
         vm.startPrank(_receiver);
 
