@@ -167,33 +167,56 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         openDeposits = true;
     }
 
-    /// @notice Update strategy parameters
-    /// @param _minAuctionPriceBps New minimum acceptable auction price in BPS of the oracle price (0 to disable)
-    /// @param _bufferPercentage New buffer percentage for auction starting price
-    /// @param _maxAuctionAmount New maximum collateral amount to auction at once
-    /// @param _maxGasPriceToTend New maximum gas price for tending
-    /// @param _dustThreshold New dust threshold for ignoring small amounts
-    /// @param _unblockAuctions Set to true to unblock auctions
-    function setStrategyParameters(
-        uint256 _minAuctionPriceBps,
-        uint256 _bufferPercentage,
-        uint256 _maxAuctionAmount,
-        uint256 _maxGasPriceToTend,
-        uint256 _dustThreshold,
-        bool _unblockAuctions
+    /// @notice Unblock auctions after an emergency block
+    /// @dev `auctionsBlocked` can only be set to true by the strategy itself after detecting an unhealthy auction
+    function unblockAuctions() external onlyManagement {
+        auctionsBlocked = false;
+    }
+
+    /// @notice Set the minimum acceptable auction price
+    /// @dev Setting to 0 disables the check
+    /// @param _minAuctionPriceBps New minimum acceptable auction price in BPS of the oracle price
+    function setMinAuctionPriceBps(
+        uint256 _minAuctionPriceBps
     ) external onlyManagement {
         require(_minAuctionPriceBps < MAX_BPS, "!minAuctionPriceBps");
-        require(_bufferPercentage >= MIN_BUFFER_PERCENTAGE, "!minBuffer");
-        require(_maxAuctionAmount > 0, "!maxAuctionAmount");
-        require(_maxGasPriceToTend >= MIN_MAX_GAS_PRICE_TO_TEND, "!minMaxGasPrice");
-        require(_dustThreshold >= MIN_DUST_THRESHOLD, "!minDust");
-
         minAuctionPriceBps = _minAuctionPriceBps;
-        bufferPercentage = _bufferPercentage;
+    }
+
+    /// @notice Set the maximum amount of collateral that can be auctioned at once
+    /// @param _maxAuctionAmount New maximum collateral amount to auction at once
+    function setMaxAuctionAmount(
+        uint256 _maxAuctionAmount
+    ) external onlyManagement {
+        require(_maxAuctionAmount > 0, "!maxAuctionAmount");
         maxAuctionAmount = _maxAuctionAmount;
+    }
+
+    /// @notice Set the maximum gas price for tending
+    /// @param _maxGasPriceToTend New maximum gas price
+    function setMaxGasPriceToTend(
+        uint256 _maxGasPriceToTend
+    ) external onlyManagement {
+        require(_maxGasPriceToTend >= MIN_MAX_GAS_PRICE_TO_TEND, "!minMaxGasPrice");
         maxGasPriceToTend = _maxGasPriceToTend;
+    }
+
+    /// @notice Set the buffer percentage for the auction starting price
+    /// @param _bufferPercentage New buffer percentage
+    function setBufferPercentage(
+        uint256 _bufferPercentage
+    ) external onlyManagement {
+        require(_bufferPercentage >= MIN_BUFFER_PERCENTAGE, "!minBuffer");
+        bufferPercentage = _bufferPercentage;
+    }
+
+    /// @notice Set the dust threshold for ignoring small amounts
+    /// @param _dustThreshold New dust threshold
+    function setDustThreshold(
+        uint256 _dustThreshold
+    ) external onlyManagement {
+        require(_dustThreshold >= MIN_DUST_THRESHOLD, "!minDust");
         dustThreshold = _dustThreshold;
-        if (_unblockAuctions) auctionsBlocked = false;
     }
 
     /// @notice Allow a specific address to deposit

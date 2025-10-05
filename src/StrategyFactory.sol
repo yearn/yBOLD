@@ -10,10 +10,9 @@ contract StrategyFactory {
 
     address public immutable emergencyAdmin;
     address public immutable auctionFactory;
-
-    address public management;
-    address public performanceFeeRecipient;
-    address public keeper;
+    address public immutable management;
+    address public immutable performanceFeeRecipient;
+    address public immutable keeper;
 
     /// @notice Track the deployments. asset => stability pool => strategy
     mapping(address => mapping(address => address)) public deployments;
@@ -64,24 +63,6 @@ contract StrategyFactory {
 
         deployments[_asset][_newStrategy.SP()] = address(_newStrategy);
         return address(_newStrategy);
-    }
-
-    function setAddresses(
-        address _management,
-        address _performanceFeeRecipient,
-        address _keeper
-    ) external onlyManagement {
-        management = _management;
-        performanceFeeRecipient = _performanceFeeRecipient;
-        keeper = _keeper;
-    }
-
-    function isDeployedStrategy(
-        address _strategy
-    ) external view returns (bool) {
-        address _asset = IStrategyInterface(_strategy).asset();
-        address _stabilityPool = IStrategyInterface(_strategy).SP();
-        return deployments[_asset][_stabilityPool] == _strategy;
     }
 
 }

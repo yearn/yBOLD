@@ -18,7 +18,6 @@ contract OperationTest is Setup {
     function test_setupStrategyOK() public {
         console2.log("address of strategy", address(strategy));
         assertEq(strategyFactory.deployments(address(asset), stabilityPool), address(strategy));
-        assertTrue(strategyFactory.isDeployedStrategy(address(strategy)));
         assertTrue(address(0) != address(strategy));
         assertEq(strategy.asset(), address(asset));
         assertEq(strategy.management(), management);
@@ -217,7 +216,8 @@ contract OperationTest is Setup {
         _airdropAmount = bound(_airdropAmount, strategy.dustThreshold() + 1, maxFuzzAmount);
         _maxAuctionAmount = bound(_maxAuctionAmount, 1, strategy.dustThreshold());
 
-        setMaxAuctionAmount(_maxAuctionAmount);
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(_maxAuctionAmount);
 
         // Deposit into strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
@@ -226,7 +226,8 @@ contract OperationTest is Setup {
         (bool trigger,) = strategy.tendTrigger();
         assertFalse(trigger);
 
-        setMaxAuctionAmount(type(uint256).max);
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(type(uint256).max);
 
         (trigger,) = strategy.tendTrigger();
         assertTrue(trigger);
@@ -389,7 +390,8 @@ contract OperationTest is Setup {
 
         test_tendTrigger_priceTooLow(_amount);
 
-        unblockAuctions();
+        vm.prank(management);
+        strategy.unblockAuctions();
 
         // Auctions should be unblocked now
         assertFalse(strategy.auctionsBlocked());
@@ -407,9 +409,11 @@ contract OperationTest is Setup {
         test_tendTrigger_priceTooLow(_amount);
 
         // Disable the auction price check
-        setMinAuctionPriceBps(0);
+        vm.prank(management);
+        strategy.setMinAuctionPriceBps(0);
 
-        unblockAuctions();
+        vm.prank(management);
+        strategy.unblockAuctions();
 
         // Auctions should be unblocked now
         assertFalse(strategy.auctionsBlocked());
@@ -545,7 +549,8 @@ contract OperationTest is Setup {
         vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
         vm.assume(_maxAuctionAmount > strategy.dustThreshold() && _maxAuctionAmount < _amount);
 
-        setMaxAuctionAmount(_maxAuctionAmount);
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(_maxAuctionAmount);
 
         address coll = strategy.COLL();
         IAuction auction = IAuction(strategy.AUCTION());

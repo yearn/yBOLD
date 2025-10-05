@@ -33,13 +33,21 @@ interface IStrategyInterface is IBaseHealthCheck {
 
     // Management
     function allowDeposits() external;
-    function setStrategyParameters(
-        uint256 _minAuctionPriceBps,
-        uint256 _bufferPercentage,
-        uint256 _maxAuctionAmount,
-        uint256 _maxGasPriceToTend,
-        uint256 _dustThreshold,
-        bool _unblockAuctions
+    function unblockAuctions() external;
+    function setMinAuctionPriceBps(
+        uint256 _minAuctionPriceBps
+    ) external;
+    function setMaxAuctionAmount(
+        uint256 _maxAuctionAmount
+    ) external;
+    function setMaxGasPriceToTend(
+        uint256 _maxGasPriceToTend
+    ) external;
+    function setBufferPercentage(
+        uint256 _bufferPercentage
+    ) external;
+    function setDustThreshold(
+        uint256 _dustThreshold
     ) external;
     function setAllowed(
         address _address
@@ -50,6 +58,5 @@ interface IStrategyInterface is IBaseHealthCheck {
 
     // Mutated
     function claim() external;
-    function claimNoDeposit() external;
 
 }
