@@ -119,7 +119,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         AUCTION = AUCTION_FACTORY.createNewAuction(_asset);
         AUCTION.enable(address(COLL));
 
-        minAuctionPriceBps = 9_500; // 95%
+        minAuctionPriceBps = 9_000; // 90%
         maxAuctionAmount = type(uint256).max;
         maxGasPriceToTend = 200 * 1e9;
         bufferPercentage = MIN_BUFFER_PERCENTAGE;

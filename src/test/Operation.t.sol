@@ -25,7 +25,7 @@ contract OperationTest is Setup {
         assertEq(strategy.keeper(), keeper);
         assertTrue(strategy.openDeposits());
         assertFalse(strategy.auctionsBlocked());
-        assertEq(strategy.minAuctionPriceBps(), 9_500);
+        assertEq(strategy.minAuctionPriceBps(), 9_000);
         assertEq(strategy.maxAuctionAmount(), type(uint256).max);
         assertEq(strategy.maxGasPriceToTend(), 200 * 1e9);
         assertEq(strategy.bufferPercentage(), 1.15e18);
