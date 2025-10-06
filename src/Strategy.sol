@@ -372,7 +372,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         uint256 _minPrice = _marketPrice * _minAuctionPriceBps / MAX_BPS;
 
         // Price per unit of collateral required by the auction
-        uint256 _auctionPrice = AUCTION.getAmountNeeded(address(COLL), WAD);
+        uint256 _auctionPrice = AUCTION.price(address(COLL));
 
         // Return true if auction price is below our minimum acceptable price
         return _auctionPrice < _minPrice;

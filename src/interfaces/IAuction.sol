@@ -10,10 +10,6 @@ interface IAuction {
     function isActive(
         address _token
     ) external view returns (bool);
-    function getAmountNeeded(
-        address _from,
-        uint256 _amountToTake
-    ) external view returns (uint256);
     function price(
         address _from
     ) external view returns (uint256);

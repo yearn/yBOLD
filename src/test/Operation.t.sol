@@ -354,7 +354,7 @@ contract OperationTest is Setup {
 
         // Make sure auction price is lower than our min price
         assertTrue(
-            IAuction(strategy.AUCTION()).getAmountNeeded(address(strategy.COLL()), 1e18)
+            IAuction(strategy.AUCTION()).price(address(strategy.COLL()))
                 < ethPrice() * 1e10 * strategy.minAuctionPriceBps() / MAX_BPS
         );
 
