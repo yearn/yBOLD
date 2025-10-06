@@ -39,7 +39,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice Buffer percentage for the auction starting price
     uint256 public bufferPercentage;
 
-    /// @notice Any amount below this will be ignored
+    /// @notice Minimum amount of collateral considered significant for claiming, auctioning, or tending
     uint256 public dustThreshold;
 
     /// @notice Addresses allowed to deposit when openDeposits is false
@@ -66,6 +66,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
     /// @notice Minimum dust threshold
     uint256 public constant MIN_DUST_THRESHOLD = 1e15;
+
+    /// @notice Asset dust threshold. We will not bother depositing amounts below this value on harvests
+    uint256 public constant ASSET_DUST_THRESHOLD = MIN_DUST_THRESHOLD;
 
     /// @notice Collateral reward token of the Stability Pool
     ERC20 public immutable COLL;
@@ -210,8 +213,8 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         bufferPercentage = _bufferPercentage;
     }
 
-    /// @notice Set the dust threshold for ignoring small amounts
-    /// @param _dustThreshold New dust threshold
+    /// @notice Set the dust threshold for the collateral token
+    /// @param _dustThreshold New collateral dust threshold
     function setDustThreshold(
         uint256 _dustThreshold
     ) external onlyManagement {
@@ -271,7 +274,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     function _harvestAndReport() internal override returns (uint256 _totalAssets) {
         if (!TokenizedStrategy.isShutdown()) {
             uint256 _toDeploy = asset.balanceOf(address(this));
-            if (_toDeploy > dustThreshold) _deployFunds(_toDeploy);
+            if (_toDeploy > ASSET_DUST_THRESHOLD) _deployFunds(_toDeploy);
         }
 
         return estimatedTotalAssets();
