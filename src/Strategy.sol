@@ -80,8 +80,6 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice Direct reference to the underlying Chainlink price feed used by `COLL_PRICE_ORACLE`
     /// @dev This feed provides a read-only price for the collateral asset without
     ///      performing Liquity's internal validity or heartbeat checks
-    /// @dev On Liquity’s rETH / wstETH branches, this feed returns the ETH/USD price rather than
-    ///      the collateral/USD price
     AggregatorV3Interface public immutable CHAINLINK_ORACLE;
 
     /// @notice Stability Pool contract
@@ -100,18 +98,20 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @param _addressesRegistry Address of the AddressesRegistry
     /// @param _asset Address of the strategy's underlying asset
     /// @param _auctionFactory Address of the AuctionFactory
+    /// @param _oracle Address of the COLL/USD _read_ price oracle
     /// @param _name Name of the strategy
     constructor(
         address _addressesRegistry,
         address _asset,
         address _auctionFactory,
+        address _oracle,
         string memory _name
     ) BaseHealthCheck(_asset, _name) {
         COLL_PRICE_ORACLE = IAddressesRegistry(_addressesRegistry).priceFeed();
         (, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
         require(!_isOracleDown && COLL_PRICE_ORACLE.priceSource() == IPriceFeed.PriceSource.primary, "!oracle");
 
-        CHAINLINK_ORACLE = COLL_PRICE_ORACLE.ethUsdOracle().aggregator;
+        CHAINLINK_ORACLE = AggregatorV3Interface(_oracle);
         require(CHAINLINK_ORACLE.decimals() == 8, "!decimals");
 
         SP = IAddressesRegistry(_addressesRegistry).stabilityPool();

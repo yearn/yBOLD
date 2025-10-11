@@ -101,7 +101,11 @@ contract Setup is ExtendedTest, IEvents {
         // we save the strategy as a IStrategyInterface to give it the needed interface
         vm.prank(management);
         IStrategyInterface _strategy = IStrategyInterface(
-            address(strategyFactory.newStrategy(addressesRegistry, address(asset), "Tokenized Strategy"))
+            address(
+                strategyFactory.newStrategy(
+                    addressesRegistry, address(asset), collateralChainlinkPriceOracle, "Tokenized Strategy"
+                )
+            )
         );
 
         vm.prank(management);
