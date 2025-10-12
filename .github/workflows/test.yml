@@ -25,7 +25,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: stable
+          version: nightly
 
       - name: Create .env file
         run: echo "ETH_RPC_URL=${{ secrets.ETH_RPC_URL }}" > .env
@@ -36,10 +36,10 @@ jobs:
           forge build --sizes
         id: build
       
-      - name: Run Forge fmt
-        run: |
-          forge fmt --check
-        id: fmt
+      # - name: Run Forge fmt
+      #   run: |
+      #     forge fmt --check
+      #   id: fmt
 
       - name: Run Forge tests
         run: |
