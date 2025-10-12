@@ -64,7 +64,11 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice Minimum `maxGasPriceToTend`
     uint256 public constant MIN_MAX_GAS_PRICE_TO_TEND = 50 * 1e9; // 50 gwei
 
-    /// @notice Minimum dust threshold
+    /// @notice Minimum allowable dust threshold for collateral
+    /// @dev Serves two purposes:
+    /// - Defines the lowest value that `dustThreshold` (the collateral dust threshold) can be set to
+    /// - Also reused as the fixed `ASSET_DUST_THRESHOLD`, representing the minimum asset amount
+    ///   considered worth depositing during harvests
     uint256 public constant MIN_DUST_THRESHOLD = 1e15;
 
     /// @notice Asset dust threshold. We will not bother depositing amounts below this value on harvests
