@@ -25,7 +25,8 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          # version: nightly
+          version: nightly-1c6ade9a
 
       - name: Create .env file
         run: echo "ETH_RPC_URL=${{ secrets.ETH_RPC_URL }}" > .env
