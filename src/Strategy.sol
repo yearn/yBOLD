@@ -92,9 +92,6 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice Auction contract for selling the collateral reward token
     IAuction public immutable AUCTION;
 
-    /// @notice Factory for creating the auction contract
-    IAuctionFactory public immutable AUCTION_FACTORY;
-
     // ===============================================================
     // Constructor
     // ===============================================================
@@ -122,8 +119,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         require(SP.boldToken() == _asset, "!sp");
         COLL = ERC20(SP.collToken());
 
-        AUCTION_FACTORY = IAuctionFactory(_auctionFactory);
-        AUCTION = AUCTION_FACTORY.createNewAuction(_asset);
+        AUCTION = IAuctionFactory(_auctionFactory).createNewAuction(_asset);
         AUCTION.enable(address(COLL));
 
         minAuctionPriceBps = 9_000; // 90%
