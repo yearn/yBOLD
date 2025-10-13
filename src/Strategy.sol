@@ -293,8 +293,11 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     ) internal override {
         if (isCollateralGainToClaim()) claim();
 
+        // Initialize to false, will be set to true if auction price is too low and we need to block auctions
+        bool _auctionsBlocked = false;
+
         // If auction price is too low, block auctions until management intervenes
-        if (_isAuctionPriceTooLow()) auctionsBlocked = true;
+        if (_isAuctionPriceTooLow()) _auctionsBlocked = true;
 
         // If there's an active auction, sweep if needed, and settle
         if (AUCTION.isActive(address(COLL))) {
@@ -302,8 +305,11 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
             AUCTION.settle(address(COLL));
         }
 
-        // If we blocked auctions, stop here
-        if (auctionsBlocked) return;
+        // If we blocked auctions, set the state and return
+        if (_auctionsBlocked) {
+            auctionsBlocked = true;
+            return;
+        }
 
         uint256 _toAuction = Math.min(COLL.balanceOf(address(this)), maxAuctionAmount);
         uint256 _available = COLL.balanceOf(address(AUCTION)) + _toAuction;

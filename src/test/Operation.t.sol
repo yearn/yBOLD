@@ -738,6 +738,9 @@ contract OperationTest is Setup {
         auction.kick(coll);
     }
 
-}
+    function test_tendGas() public {
+        vm.prank(keeper);
+        strategy.tend();
+    }
 
-// @todo -- here -- test new changes
+}
