@@ -23,9 +23,6 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice Whether deposits are open to everyone
     bool public openDeposits;
 
-    /// @notice Whether auctioning collateral rewards is currently blocked
-    bool public auctionsBlocked;
-
     /// @notice Minimum acceptable auction price expressed in basis points of the oracle price
     /// @dev Set to 0 to disable the check
     uint256 public minAuctionPriceBps;
@@ -57,6 +54,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
     /// @notice Auction starting price buffer percentage increase when the oracle is down
     uint256 public constant ORACLE_DOWN_BUFFER_PCT_MULTIPLIER = 1_000; // 1000x
+
+    /// @notice Auction starting price buffer percentage increase when the auction price is too low
+    uint256 public constant AUCTION_PRICE_TOO_LOW_BUFFER_PCT_MULTIPLIER = 50; // 50x
 
     /// @notice Minimum buffer percentage for the auction starting price
     uint256 public constant MIN_BUFFER_PERCENTAGE = WAD + 15e16; // 15%
@@ -168,12 +168,6 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @dev This is irreversible
     function allowDeposits() external onlyManagement {
         openDeposits = true;
-    }
-
-    /// @notice Unblock auctions after an emergency block
-    /// @dev `auctionsBlocked` can only be set to true by the strategy itself after detecting an unhealthy auction
-    function unblockAuctions() external onlyManagement {
-        auctionsBlocked = false;
     }
 
     /// @notice Set the minimum acceptable auction price
@@ -293,22 +287,15 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     ) internal override {
         if (isCollateralGainToClaim()) claim();
 
-        // Initialize to false, will be set to true if auction price is too low and we need to block auctions
-        bool _auctionsBlocked = false;
-
-        // If auction price is too low, block auctions until management intervenes
-        if (_isAuctionPriceTooLow()) _auctionsBlocked = true;
+        // If auction price is below our acceptable threshold, we will start a new one with an increased starting price
+        // such that there's a larger delay before we reach our minimum acceptable price again
+        bool _isPriceTooLow = false;
+        if (_isAuctionPriceTooLow()) _isPriceTooLow = true;
 
         // If there's an active auction, sweep if needed, and settle
         if (AUCTION.isActive(address(COLL))) {
             if (AUCTION.available(address(COLL)) > 0) AUCTION.sweep(address(COLL));
             AUCTION.settle(address(COLL));
-        }
-
-        // If we blocked auctions, set the state and return
-        if (_auctionsBlocked) {
-            auctionsBlocked = true;
-            return;
         }
 
         uint256 _toAuction = Math.min(COLL.balanceOf(address(this)), maxAuctionAmount);
@@ -318,6 +305,8 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
             uint256 _bufferPercentage = bufferPercentage;
             if (_isOracleDown || COLL_PRICE_ORACLE.priceSource() != IPriceFeed.PriceSource.primary) {
                 _bufferPercentage *= ORACLE_DOWN_BUFFER_PCT_MULTIPLIER;
+            } else if (_isPriceTooLow) {
+                _bufferPercentage *= AUCTION_PRICE_TOO_LOW_BUFFER_PCT_MULTIPLIER;
             }
 
             // slither-disable-next-line divide-before-multiply
@@ -340,9 +329,6 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     ///    * basefee <= maxGasPriceToTend and we have gains or collateral to auction
     function _tendTrigger() internal view override returns (bool) {
         if (TokenizedStrategy.totalAssets() == 0) return false;
-
-        // If auctions are blocked, do nothing
-        if (auctionsBlocked) return false;
 
         // Check if active auction price is below our acceptable threshold
         if (_isAuctionPriceTooLow()) return true;

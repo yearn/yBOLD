@@ -8,7 +8,6 @@ interface IStrategyInterface is IBaseHealthCheck {
 
     // Storage
     function openDeposits() external view returns (bool);
-    function auctionsBlocked() external view returns (bool);
     function minAuctionPriceBps() external view returns (uint256);
     function maxAuctionAmount() external view returns (uint256);
     function maxGasPriceToTend() external view returns (uint256);
@@ -18,6 +17,7 @@ interface IStrategyInterface is IBaseHealthCheck {
         address _address
     ) external view returns (bool);
     function ORACLE_DOWN_BUFFER_PCT_MULTIPLIER() external view returns (uint256);
+    function AUCTION_PRICE_TOO_LOW_BUFFER_PCT_MULTIPLIER() external view returns (uint256);
     function MIN_BUFFER_PERCENTAGE() external view returns (uint256);
     function MIN_MAX_GAS_PRICE_TO_TEND() external view returns (uint256);
     function MIN_DUST_THRESHOLD() external view returns (uint256);
@@ -33,7 +33,6 @@ interface IStrategyInterface is IBaseHealthCheck {
 
     // Management
     function allowDeposits() external;
-    function unblockAuctions() external;
     function setMinAuctionPriceBps(
         uint256 _minAuctionPriceBps
     ) external;

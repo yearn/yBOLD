@@ -24,7 +24,6 @@ contract OperationTest is Setup {
         assertEq(strategy.performanceFeeRecipient(), performanceFeeRecipient);
         assertEq(strategy.keeper(), keeper);
         assertTrue(strategy.openDeposits());
-        assertFalse(strategy.auctionsBlocked());
         assertEq(strategy.minAuctionPriceBps(), 9_000);
         assertEq(strategy.maxAuctionAmount(), type(uint256).max);
         assertEq(strategy.maxGasPriceToTend(), 200 * 1e9);
@@ -349,6 +348,9 @@ contract OperationTest is Setup {
         vm.prank(keeper);
         strategy.tend();
 
+        // Get the starting price before
+        uint256 startingPriceBefore = IAuction(strategy.AUCTION()).startingPrice();
+
         // Skip enough time such that price is too low
         skip(1 hours);
 
@@ -358,47 +360,30 @@ contract OperationTest is Setup {
                 < ethPrice() * 1e10 * strategy.minAuctionPriceBps() / MAX_BPS
         );
 
-        // We need to block auctions now
+        // We need to start a new auction now
         (trigger,) = strategy.tendTrigger();
         assertTrue(trigger);
 
         // Make sure auction is active
         assertTrue(IAuction(strategy.AUCTION()).isActive(address(strategy.COLL())));
 
-        // Make sure auction are not blocked yet
-        assertFalse(strategy.auctionsBlocked());
-
         // Tend to unwind and block auctions
         vm.prank(keeper);
         strategy.tend();
 
-        // Auctions should be blocked now
-        assertTrue(strategy.auctionsBlocked());
+        // Make sure starting price is higher
+        assertApproxEqAbs(
+            IAuction(strategy.AUCTION()).startingPrice(),
+            startingPriceBefore * strategy.AUCTION_PRICE_TOO_LOW_BUFFER_PCT_MULTIPLIER(),
+            50
+        );
 
-        // We cannot kick again
+        // We shouldnt kick again
         (trigger,) = strategy.tendTrigger();
         assertFalse(trigger);
 
-        // Make sure no active auction
-        assertFalse(IAuction(strategy.AUCTION()).isActive(address(strategy.COLL())));
-    }
-
-    function test_tendTrigger_priceTooLow_unblock(
-        uint256 _amount
-    ) public {
-        vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
-
-        test_tendTrigger_priceTooLow(_amount);
-
-        vm.prank(management);
-        strategy.unblockAuctions();
-
-        // Auctions should be unblocked now
-        assertFalse(strategy.auctionsBlocked());
-
-        // We can kick again
-        (bool trigger,) = strategy.tendTrigger();
-        assertTrue(trigger);
+        // Make sure active auction
+        assertTrue(IAuction(strategy.AUCTION()).isActive(address(strategy.COLL())));
     }
 
     function test_tendTrigger_priceTooLow_checkDisabled(
@@ -412,15 +397,26 @@ contract OperationTest is Setup {
         vm.prank(management);
         strategy.setMinAuctionPriceBps(0);
 
-        vm.prank(management);
-        strategy.unblockAuctions();
-
-        // Auctions should be unblocked now
-        assertFalse(strategy.auctionsBlocked());
-
-        // But we can kick again
+        // TKS will not kick again
         (bool trigger,) = strategy.tendTrigger();
-        assertTrue(trigger);
+        assertFalse(trigger);
+
+        // Get the starting price before
+        uint256 startingPriceBefore = IAuction(strategy.AUCTION()).startingPrice();
+
+        // But we can manually force kick with a low starting price
+        vm.prank(keeper);
+        strategy.tend();
+
+        // Make sure starting price is lower
+        assertApproxEqAbs(
+            IAuction(strategy.AUCTION()).startingPrice(),
+            startingPriceBefore / strategy.AUCTION_PRICE_TOO_LOW_BUFFER_PCT_MULTIPLIER(),
+            50
+        );
+
+        // Make sure active auction
+        assertTrue(IAuction(strategy.AUCTION()).isActive(address(strategy.COLL())));
     }
 
     function test_tendTrigger_amountBelowDustThreshold(

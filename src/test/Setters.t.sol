@@ -19,12 +19,6 @@ contract SettersTest is Setup {
         assertTrue(strategy.openDeposits());
     }
 
-    // Checking functionality in Operation.t.sol
-    function test_unblockAuctions() public {
-        vm.expectRevert("!management");
-        strategy.unblockAuctions();
-    }
-
     function test_setMinAuctionPriceBps(
         uint256 _minAuctionPriceBps
     ) public {
