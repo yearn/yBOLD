@@ -322,11 +322,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     // ===============================================================
 
     /// @inheritdoc BaseStrategy
-    /// @dev Tend is triggered if:
-    ///  - auctions are not blocked,
-    ///  - and either:
-    ///    * we need to stop an unhealthy auction, OR
-    ///    * basefee <= maxGasPriceToTend and we have gains or collateral to auction
+    /// @dev Tend is triggered if either:
+    ///    - we need to stop an unhealthy auction, OR
+    ///    - basefee <= maxGasPriceToTend and we have gains or collateral to auction
     function _tendTrigger() internal view override returns (bool) {
         if (TokenizedStrategy.totalAssets() == 0) return false;
 
