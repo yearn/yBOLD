@@ -356,7 +356,8 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
         // Get the current market price of the collateral from Chainlink
         (, int256 _answer,,,) = CHAINLINK_ORACLE.latestRoundData();
-        require(_answer > 0, "!answer");
+        // require(_answer > 0, "!answer");
+        if (_answer <= 0) return false;
 
         // Scale the answer to 18 decimals
         uint256 _marketPrice = uint256(_answer) * CHAINLINK_TO_WAD;

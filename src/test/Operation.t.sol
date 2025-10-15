@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 
 import "forge-std/console2.sol";
-import {Setup, ERC20, IStabilityPool} from "./utils/Setup.sol";
+import {AggregatorV3Interface, Setup, ERC20, IStabilityPool} from "./utils/Setup.sol";
 import {IAuction} from "../interfaces/IAuction.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 
@@ -384,6 +384,57 @@ contract OperationTest is Setup {
 
         // Make sure active auction
         assertTrue(IAuction(strategy.AUCTION()).isActive(address(strategy.COLL())));
+    }
+
+    function test_tendTrigger_priceTooLow_butCLOracleBad(
+        uint256 _amount,
+        int256 _clPrice
+    ) public {
+        vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
+        vm.assume(_clPrice <= 0);
+
+        // Deposit into strategy
+        mintAndDepositIntoStrategy(strategy, user, _amount);
+
+        // Make sure there's something to kick
+        airdrop(ERC20(strategy.COLL()), address(strategy), _amount);
+
+        (bool trigger,) = strategy.tendTrigger();
+        assertTrue(trigger);
+
+        // Kick it
+        vm.prank(keeper);
+        strategy.tend();
+
+        // Get the starting price before
+        uint256 startingPriceBefore = IAuction(strategy.AUCTION()).startingPrice();
+
+        // Skip enough time such that price is too low
+        skip(1 hours);
+
+        // Make sure auction price is lower than our min price
+        assertTrue(
+            IAuction(strategy.AUCTION()).price(address(strategy.COLL()))
+                < ethPrice() * 1e10 * strategy.minAuctionPriceBps() / MAX_BPS
+        );
+
+        // We need to start a new auction now
+        (trigger,) = strategy.tendTrigger();
+        assertTrue(trigger);
+
+        AggregatorV3Interface oracle = AggregatorV3Interface(strategy.CHAINLINK_ORACLE());
+        (, int256 _answer,,,) = oracle.latestRoundData();
+
+        // Make sure Chainlink always returns 0
+        vm.mockCall(
+            address(oracle),
+            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encode(0, _clPrice, 0, 0, 0)
+        );
+
+        // We no longer do the auction price check, so no need to tend again
+        (trigger,) = strategy.tendTrigger();
+        assertFalse(trigger);
     }
 
     function test_tendTrigger_priceTooLow_checkDisabled(
