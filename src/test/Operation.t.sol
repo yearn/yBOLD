@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 
 import "forge-std/console2.sol";
-import {Setup, ERC20, IStabilityPool} from "./utils/Setup.sol";
+import {AggregatorV3Interface, Setup, ERC20, IStabilityPool} from "./utils/Setup.sol";
 import {IAuction} from "../interfaces/IAuction.sol";
 import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 
@@ -18,19 +18,21 @@ contract OperationTest is Setup {
     function test_setupStrategyOK() public {
         console2.log("address of strategy", address(strategy));
         assertEq(strategyFactory.deployments(address(asset), stabilityPool), address(strategy));
-        assertTrue(strategyFactory.isDeployedStrategy(address(strategy)));
         assertTrue(address(0) != address(strategy));
         assertEq(strategy.asset(), address(asset));
         assertEq(strategy.management(), management);
         assertEq(strategy.performanceFeeRecipient(), performanceFeeRecipient);
         assertEq(strategy.keeper(), keeper);
         assertTrue(strategy.openDeposits());
+        assertEq(strategy.minAuctionPriceBps(), 9_500);
+        assertEq(strategy.maxAuctionAmount(), type(uint256).max);
         assertEq(strategy.maxGasPriceToTend(), 200 * 1e9);
-        assertEq(strategy.bufferPercentage(), 1.1e18);
+        assertEq(strategy.bufferPercentage(), 1.15e18);
         assertTrue(strategy.AUCTION() != address(0));
         assertEq(strategy.COLL(), tokenAddrs["WETH"]);
         assertEq(strategy.SP(), stabilityPool);
         assertEq(strategy.COLL_PRICE_ORACLE(), collateralPriceOracle);
+        assertEq(strategy.CHAINLINK_ORACLE(), collateralChainlinkPriceOracle);
     }
 
     function test_operation(
@@ -65,7 +67,10 @@ contract OperationTest is Setup {
         assertGe(asset.balanceOf(user), balanceBefore + _amount, "!final balance");
     }
 
-    function test_profitableReport(uint256 _amount, uint16 _profitFactor) public {
+    function test_profitableReport(
+        uint256 _amount,
+        uint16 _profitFactor
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         _profitFactor = uint16(bound(uint256(_profitFactor), 10, MAX_BPS / 10));
 
@@ -97,7 +102,10 @@ contract OperationTest is Setup {
         assertGe(asset.balanceOf(user), balanceBefore + _amount, "!final balance");
     }
 
-    function test_profitableReport_withFees(uint256 _amount, uint16 _profitFactor) public {
+    function test_profitableReport_withFees(
+        uint256 _amount,
+        uint16 _profitFactor
+    ) public {
         vm.assume(_amount > minFuzzAmount * 1e4 && _amount < maxFuzzAmount);
         _profitFactor = uint16(bound(uint256(_profitFactor), 10, MAX_BPS / 10));
 
@@ -183,7 +191,10 @@ contract OperationTest is Setup {
         assertFalse(trigger);
     }
 
-    function test_tendTrigger_collateralToSell(uint256 _amount, uint256 _airdropAmount) public {
+    function test_tendTrigger_collateralToSell(
+        uint256 _amount,
+        uint256 _airdropAmount
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         vm.assume(_airdropAmount > strategy.dustThreshold() && _airdropAmount < maxFuzzAmount);
 
@@ -195,7 +206,36 @@ contract OperationTest is Setup {
         assertTrue(trigger);
     }
 
-    function test_tendTrigger_notEnoughCollateralToSell(uint256 _amount, uint256 _airdropAmount) public {
+    function test_tendTrigger_collateralToSell_cappedByMaxAuctionAmount(
+        uint256 _amount,
+        uint256 _airdropAmount,
+        uint256 _maxAuctionAmount
+    ) public {
+        _amount = bound(_amount, minFuzzAmount + 1, maxFuzzAmount);
+        _airdropAmount = bound(_airdropAmount, strategy.dustThreshold() + 1, maxFuzzAmount);
+        _maxAuctionAmount = bound(_maxAuctionAmount, 1, strategy.dustThreshold());
+
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(_maxAuctionAmount);
+
+        // Deposit into strategy
+        mintAndDepositIntoStrategy(strategy, user, _amount);
+
+        airdrop(ERC20(strategy.COLL()), address(strategy), _airdropAmount);
+        (bool trigger,) = strategy.tendTrigger();
+        assertFalse(trigger);
+
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(type(uint256).max);
+
+        (trigger,) = strategy.tendTrigger();
+        assertTrue(trigger);
+    }
+
+    function test_tendTrigger_notEnoughCollateralToSell(
+        uint256 _amount,
+        uint256 _airdropAmount
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         vm.assume(_airdropAmount <= strategy.dustThreshold());
 
@@ -207,11 +247,15 @@ contract OperationTest is Setup {
         assertFalse(trigger);
     }
 
-    function test_tendTrigger_collateralToSell_basefeeTooHigh(uint256 _amount, uint256 _airdropAmount) public {
+    function test_tendTrigger_collateralToSell_basefeeTooHigh(
+        uint256 _amount,
+        uint256 _airdropAmount
+    ) public {
         test_tendTrigger_collateralToSell(_amount, _airdropAmount);
 
-        vm.prank(management);
-        strategy.setMaxGasPriceToTend(0);
+        // Set `maxGasPriceToTend` to 0
+        vm.store(address(strategy), bytes32(uint256(3)), bytes32(uint256(0)));
+        assertEq(strategy.maxGasPriceToTend(), 0);
 
         (bool trigger,) = strategy.tendTrigger();
         assertFalse(trigger);
@@ -247,8 +291,9 @@ contract OperationTest is Setup {
     ) public {
         test_tendTrigger_collateralGainToClaim(_amount);
 
-        vm.prank(management);
-        strategy.setMaxGasPriceToTend(0);
+        // Set `maxGasPriceToTend` to 0
+        vm.store(address(strategy), bytes32(uint256(3)), bytes32(uint256(0)));
+        assertEq(strategy.maxGasPriceToTend(), 0);
 
         (bool trigger,) = strategy.tendTrigger();
         assertFalse(trigger);
@@ -283,6 +328,161 @@ contract OperationTest is Setup {
 
         (trigger,) = strategy.tendTrigger();
         assertTrue(trigger);
+    }
+
+    function test_tendTrigger_priceTooLow(
+        uint256 _amount
+    ) public {
+        vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
+
+        // Deposit into strategy
+        mintAndDepositIntoStrategy(strategy, user, _amount);
+
+        // Make sure there's something to kick
+        airdrop(ERC20(strategy.COLL()), address(strategy), _amount);
+
+        (bool trigger,) = strategy.tendTrigger();
+        assertTrue(trigger);
+
+        // Kick it
+        vm.prank(keeper);
+        strategy.tend();
+
+        // Get the starting price before
+        uint256 startingPriceBefore = IAuction(strategy.AUCTION()).startingPrice();
+
+        // Skip enough time such that price is too low
+        skip(1 hours);
+
+        // Make sure auction price is lower than our min price
+        assertTrue(
+            IAuction(strategy.AUCTION()).price(address(strategy.COLL()))
+                < ethPrice() * 1e10 * strategy.minAuctionPriceBps() / MAX_BPS
+        );
+
+        // We need to start a new auction now
+        (trigger,) = strategy.tendTrigger();
+        assertTrue(trigger);
+
+        // Make sure auction is active
+        assertTrue(IAuction(strategy.AUCTION()).isActive(address(strategy.COLL())));
+
+        // Tend to unwind and block auctions
+        vm.prank(keeper);
+        strategy.tend();
+
+        // Make sure starting price is higher
+        assertApproxEqAbs(
+            IAuction(strategy.AUCTION()).startingPrice(),
+            startingPriceBefore * strategy.AUCTION_PRICE_TOO_LOW_BUFFER_PCT_MULTIPLIER(),
+            50
+        );
+
+        // We shouldnt kick again
+        (trigger,) = strategy.tendTrigger();
+        assertFalse(trigger);
+
+        // Make sure active auction
+        assertTrue(IAuction(strategy.AUCTION()).isActive(address(strategy.COLL())));
+    }
+
+    function test_tendTrigger_priceTooLow_butCLOracleBad(
+        uint256 _amount,
+        int256 _clPrice
+    ) public {
+        vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
+        vm.assume(_clPrice <= 0);
+
+        // Deposit into strategy
+        mintAndDepositIntoStrategy(strategy, user, _amount);
+
+        // Make sure there's something to kick
+        airdrop(ERC20(strategy.COLL()), address(strategy), _amount);
+
+        (bool trigger,) = strategy.tendTrigger();
+        assertTrue(trigger);
+
+        // Kick it
+        vm.prank(keeper);
+        strategy.tend();
+
+        // Get the starting price before
+        uint256 startingPriceBefore = IAuction(strategy.AUCTION()).startingPrice();
+
+        // Skip enough time such that price is too low
+        skip(1 hours);
+
+        // Make sure auction price is lower than our min price
+        assertTrue(
+            IAuction(strategy.AUCTION()).price(address(strategy.COLL()))
+                < ethPrice() * 1e10 * strategy.minAuctionPriceBps() / MAX_BPS
+        );
+
+        // We need to start a new auction now
+        (trigger,) = strategy.tendTrigger();
+        assertTrue(trigger);
+
+        AggregatorV3Interface oracle = AggregatorV3Interface(strategy.CHAINLINK_ORACLE());
+        (, int256 _answer,,,) = oracle.latestRoundData();
+
+        // Make sure Chainlink always returns 0
+        vm.mockCall(
+            address(oracle),
+            abi.encodeWithSelector(AggregatorV3Interface.latestRoundData.selector),
+            abi.encode(0, _clPrice, 0, 0, 0)
+        );
+
+        // We no longer do the auction price check, so no need to tend again
+        (trigger,) = strategy.tendTrigger();
+        assertFalse(trigger);
+    }
+
+    function test_tendTrigger_priceTooLow_checkDisabled(
+        uint256 _amount
+    ) public {
+        vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
+
+        test_tendTrigger_priceTooLow(_amount);
+
+        // Disable the auction price check
+        vm.prank(management);
+        strategy.setMinAuctionPriceBps(0);
+
+        // TKS will not kick again
+        (bool trigger,) = strategy.tendTrigger();
+        assertFalse(trigger);
+
+        // Get the starting price before
+        uint256 startingPriceBefore = IAuction(strategy.AUCTION()).startingPrice();
+
+        // But we can manually force kick with a low starting price
+        vm.prank(keeper);
+        strategy.tend();
+
+        // Make sure starting price is lower
+        assertApproxEqAbs(
+            IAuction(strategy.AUCTION()).startingPrice(),
+            startingPriceBefore / strategy.AUCTION_PRICE_TOO_LOW_BUFFER_PCT_MULTIPLIER(),
+            50
+        );
+
+        // Make sure active auction
+        assertTrue(IAuction(strategy.AUCTION()).isActive(address(strategy.COLL())));
+    }
+
+    function test_tendTrigger_amountBelowDustThreshold(
+        uint256 _amount
+    ) public {
+        vm.assume(_amount > 0 && _amount < strategy.dustThreshold());
+
+        // Deposit into strategy
+        mintAndDepositIntoStrategy(strategy, user, _amount);
+
+        // Make sure there's something to kick
+        airdrop(ERC20(strategy.COLL()), address(strategy), _amount);
+
+        (bool trigger,) = strategy.tendTrigger();
+        assertFalse(trigger);
     }
 
     function test_tendAfterCollateralGain(
@@ -337,7 +537,7 @@ contract OperationTest is Setup {
         // Check auction starting price
         (uint256 _price,) = IPriceFeed(strategy.COLL_PRICE_ORACLE()).fetchPrice();
         uint256 _toAuctionPrice = _availableToAuction * _price / 1e18;
-        uint256 _expectedStartingPrice = _toAuctionPrice * 110 / 100 / 1e18;
+        uint256 _expectedStartingPrice = _toAuctionPrice * 115 / 100 / 1e18;
         assertEq(IAuction(strategy.AUCTION()).startingPrice(), _expectedStartingPrice);
 
         // Check auction price
@@ -355,6 +555,86 @@ contract OperationTest is Setup {
         assertGt(profit, 0);
         assertEq(loss, 0);
         assertGt(strategy.estimatedTotalAssets(), _estimatedTotalAssetsBefore);
+    }
+
+    function test_tendActiveAuction(
+        uint256 _amount
+    ) public {
+        vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
+
+        address coll = strategy.COLL();
+        IAuction auction = IAuction(strategy.AUCTION());
+
+        // Airdrop enough collateral rewards to kick a new auction
+        airdrop(ERC20(coll), strategy.AUCTION(), _amount);
+
+        // Kick it
+        vm.prank(keeper);
+        strategy.tend();
+
+        assertTrue(auction.isActive(coll));
+        assertEq(auction.available(coll), _amount);
+
+        uint256 startingPriceBefore = auction.startingPrice();
+
+        // Airdrop more collateral rewards so that we need to kick again
+        airdrop(ERC20(coll), strategy.AUCTION(), _amount);
+
+        // Kick again, with new lot
+        vm.prank(keeper);
+        strategy.tend();
+
+        assertTrue(auction.isActive(coll));
+        assertEq(auction.available(coll), _amount * 2);
+        assertApproxEqAbs(auction.startingPrice(), startingPriceBefore * 2, 1);
+    }
+
+    function test_tendAfterCollateralGain_cappedByMaxAuctionAmount(
+        uint256 _amount,
+        uint256 _maxAuctionAmount
+    ) public {
+        vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
+        vm.assume(_maxAuctionAmount > strategy.dustThreshold() && _maxAuctionAmount < _amount);
+
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(_maxAuctionAmount);
+
+        address coll = strategy.COLL();
+        IAuction auction = IAuction(strategy.AUCTION());
+
+        uint256 expectedRemaining = _amount - _maxAuctionAmount;
+
+        // Airdrop enough collateral rewards to kick a new auction
+        airdrop(ERC20(coll), address(strategy), _amount);
+
+        // Kick it
+        vm.prank(keeper);
+        strategy.tend();
+
+        assertTrue(auction.isActive(coll));
+        assertEq(auction.available(coll), _maxAuctionAmount);
+        assertEq(ERC20(coll).balanceOf(address(strategy)), expectedRemaining);
+
+        // Take auction
+        vm.prank(address(auction));
+        ERC20(coll).transfer(address(420), _maxAuctionAmount);
+        assertEq(auction.available(coll), 0);
+        assertTrue(auction.isActive(coll)); // Was never settled
+
+        uint256 newAuctionAmount = ERC20(coll).balanceOf(address(strategy)) > _maxAuctionAmount
+            ? _maxAuctionAmount
+            : ERC20(coll).balanceOf(address(strategy));
+        vm.assume(newAuctionAmount > strategy.dustThreshold());
+
+        uint256 newExpectedRemaining = ERC20(coll).balanceOf(address(strategy)) - newAuctionAmount;
+
+        // Kick it again
+        vm.prank(keeper);
+        strategy.tend();
+
+        assertTrue(auction.isActive(coll));
+        assertEq(auction.available(coll), newAuctionAmount);
+        assertEq(ERC20(coll).balanceOf(address(strategy)), newExpectedRemaining);
     }
 
     function test_tendSettleAuction(
@@ -426,7 +706,10 @@ contract OperationTest is Setup {
         assertEq(auction.available(coll), _amount);
     }
 
-    function test_tendSettleAuctionAndTooLowToKickNewOne(uint256 _amount, uint256 _amountTooLow) public {
+    function test_tendSettleAuctionAndTooLowToKickNewOne(
+        uint256 _amount,
+        uint256 _amountTooLow
+    ) public {
         vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
         vm.assume(_amountTooLow <= strategy.dustThreshold());
 
@@ -480,7 +763,7 @@ contract OperationTest is Setup {
 
         // Check auction starting price
         uint256 _toAuctionPrice = _airdropAmount * _price / 1e18;
-        uint256 _expectedStartingPrice = (_toAuctionPrice * (110 * 1000) / 100) / 1e18;
+        uint256 _expectedStartingPrice = (_toAuctionPrice * (115 * 1000) / 100) / 1e18;
         assertEq(IAuction(strategy.AUCTION()).startingPrice(), _expectedStartingPrice);
 
         // Check auction price
@@ -489,17 +772,22 @@ contract OperationTest is Setup {
         assertApproxEq(IAuction(strategy.AUCTION()).price(strategy.COLL()), _expectedPrice, 1);
     }
 
-    function test_kickAuction_wrongCaller(
-        address _wrongCaller
+    function test_kickAuction_permissionlessKick(
+        address _address
     ) public {
-        vm.assume(_wrongCaller != address(strategy));
-
         address coll = strategy.COLL();
         IAuction auction = IAuction(strategy.AUCTION());
 
-        vm.expectRevert("!governance");
-        vm.prank(_wrongCaller);
+        // Airdrop some collateral so there's something to kick
+        airdrop(ERC20(coll), address(auction), 1 ether);
+
+        vm.prank(_address);
         auction.kick(coll);
+    }
+
+    function test_tendGas() public {
+        vm.prank(keeper);
+        strategy.tend();
     }
 
 }

@@ -48,6 +48,9 @@ interface ICommonReportTrigger {
      * @return . Bool if the strategy should report to the vault.
      * @return . Bytes with either the calldata or reason why False.
      */
-    function defaultVaultReportTrigger(address _vault, address _strategy) external view returns (bool, bytes memory);
+    function defaultVaultReportTrigger(
+        address _vault,
+        address _strategy
+    ) external view returns (bool, bytes memory);
 
 }

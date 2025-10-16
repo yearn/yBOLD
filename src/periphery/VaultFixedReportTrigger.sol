@@ -39,7 +39,10 @@ contract VaultFixedReportTrigger is CustomVaultTriggerBase {
     // ===============================================================
 
     /// @inheritdoc CustomVaultTriggerBase
-    function reportTrigger(address _vault, address _strategy) external view override returns (bool, bytes memory) {
+    function reportTrigger(
+        address _vault,
+        address _strategy
+    ) external view override returns (bool, bytes memory) {
         IVault.StrategyParams memory _params = IVault(_vault).strategies(_strategy);
         return block.timestamp - _params.last_report > minReportDelay
             ? COMMON_REPORT_TRIGGER.defaultVaultReportTrigger(_vault, _strategy)

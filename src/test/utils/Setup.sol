@@ -6,7 +6,6 @@ import {ExtendedTest} from "./ExtendedTest.sol";
 
 import {LiquityV2SPStrategy as Strategy, ERC20} from "../../Strategy.sol";
 import {StrategyFactory} from "../../StrategyFactory.sol";
-import {AuctionFactory} from "../../periphery/AuctionFactory.sol";
 import {IStrategyInterface} from "../../interfaces/IStrategyInterface.sol";
 import {AggregatorV3Interface} from "../../interfaces/AggregatorV3Interface.sol";
 import {IStabilityPool} from "../../interfaces/IStabilityPool.sol";
@@ -36,7 +35,6 @@ contract Setup is ExtendedTest, IEvents {
     IStrategyInterface public strategy;
 
     StrategyFactory public strategyFactory;
-    AuctionFactory public auctionFactory;
 
     mapping(string => address) public tokenAddrs;
 
@@ -53,7 +51,8 @@ contract Setup is ExtendedTest, IEvents {
     address public addressesRegistry = address(0x20F7C9ad66983F6523a0881d0f82406541417526); // WETH Address Registry
     address public stabilityPool = address(0x5721cbbd64fc7Ae3Ef44A0A3F9a790A9264Cf9BF); // WETH Stability Pool
     address public collateralPriceOracle = address(0xCC5F8102eb670c89a4a3c567C13851260303c24F); // Liquity WETH Price Oracle
-    address public priceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
+    address public collateralChainlinkPriceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
+    address public auctionFactory = address(0xbC587a495420aBB71Bbd40A0e291B64e80117526); // Newest Auction Factory
 
     // Address of the real deployed Factory
     address public factory;
@@ -70,7 +69,7 @@ contract Setup is ExtendedTest, IEvents {
     uint256 public profitMaxUnlockTime = 10 days;
 
     function setUp() public virtual {
-        uint256 _blockNumber = 22_627_836; // Caching for faster tests
+        uint256 _blockNumber = 23_499_885; // Caching for faster tests
         vm.selectFork(vm.createFork(vm.envString("ETH_RPC_URL"), _blockNumber));
 
         _setTokenAddrs();
@@ -81,9 +80,8 @@ contract Setup is ExtendedTest, IEvents {
         // Set decimals
         decimals = asset.decimals();
 
-        auctionFactory = new AuctionFactory();
         strategyFactory =
-            new StrategyFactory(management, performanceFeeRecipient, keeper, emergencyAdmin, address(auctionFactory));
+            new StrategyFactory(management, performanceFeeRecipient, keeper, emergencyAdmin, auctionFactory);
 
         // Deploy strategy and set variables
         strategy = IStrategyInterface(setUpStrategy());
@@ -103,7 +101,11 @@ contract Setup is ExtendedTest, IEvents {
         // we save the strategy as a IStrategyInterface to give it the needed interface
         vm.prank(management);
         IStrategyInterface _strategy = IStrategyInterface(
-            address(strategyFactory.newStrategy(addressesRegistry, address(asset), "Tokenized Strategy"))
+            address(
+                strategyFactory.newStrategy(
+                    addressesRegistry, address(asset), collateralChainlinkPriceOracle, "Tokenized Strategy"
+                )
+            )
         );
 
         vm.prank(management);
@@ -125,7 +127,11 @@ contract Setup is ExtendedTest, IEvents {
         _strategy.deposit(_amount, _user);
     }
 
-    function depositIntoStrategy(IStrategyInterface _strategy, address _user, uint256 _amount) public {
+    function depositIntoStrategy(
+        IStrategyInterface _strategy,
+        address _user,
+        uint256 _amount
+    ) public {
         vm.prank(_user);
         asset.approve(address(_strategy), _amount);
 
@@ -133,7 +139,11 @@ contract Setup is ExtendedTest, IEvents {
         _strategy.deposit(_amount, _user);
     }
 
-    function mintAndDepositIntoStrategy(IStrategyInterface _strategy, address _user, uint256 _amount) public {
+    function mintAndDepositIntoStrategy(
+        IStrategyInterface _strategy,
+        address _user,
+        uint256 _amount
+    ) public {
         airdrop(asset, _user, _amount);
         depositIntoStrategy(_strategy, _user, _amount);
     }
@@ -155,7 +165,11 @@ contract Setup is ExtendedTest, IEvents {
         assertEq(_totalAssets, _totalDebt + _totalIdle, "!Added");
     }
 
-    function airdrop(ERC20 _asset, address _to, uint256 _amount) public {
+    function airdrop(
+        ERC20 _asset,
+        address _to,
+        uint256 _amount
+    ) public {
         uint256 balanceBefore = _asset.balanceOf(_to);
         deal(address(_asset), _to, balanceBefore + _amount);
     }
@@ -189,11 +203,14 @@ contract Setup is ExtendedTest, IEvents {
     }
 
     function ethPrice() public view returns (uint256) {
-        (, int256 price,,,) = AggregatorV3Interface(priceOracle).latestRoundData();
+        (, int256 price,,,) = AggregatorV3Interface(collateralChainlinkPriceOracle).latestRoundData();
         return uint256(price);
     }
 
-    function setFees(uint16 _protocolFee, uint16 _performanceFee) public {
+    function setFees(
+        uint16 _protocolFee,
+        uint16 _performanceFee
+    ) public {
         address gov = IFactory(factory).governance();
 
         // Need to make sure there is a protocol fee recipient to set the fee.

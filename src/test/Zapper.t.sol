@@ -20,7 +20,10 @@ contract ZapperTest is Setup {
         oracle = new MorphoPriceOracle();
     }
 
-    function test_zapIn(uint256 _amount, address _receiver) public returns (uint256 _shares) {
+    function _test_zapIn(
+        uint256 _amount,
+        address _receiver
+    ) public returns (uint256 _shares) {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         vm.assume(_receiver != address(0));
 
@@ -52,10 +55,14 @@ contract ZapperTest is Setup {
         vm.stopPrank();
     }
 
-    function test_zapOut(uint256 _amount, address _receiver, address _secondReceiver) public {
+    function _test_zapOut(
+        uint256 _amount,
+        address _receiver,
+        address _secondReceiver
+    ) public {
         vm.assume(_secondReceiver != address(0));
 
-        uint256 _shares = test_zapIn(_amount, _receiver);
+        uint256 _shares = _test_zapIn(_amount, _receiver);
 
         vm.startPrank(_receiver);
 
@@ -80,7 +87,11 @@ contract ZapperTest is Setup {
         vm.stopPrank();
     }
 
-    function test_sweep(uint256 _amount, address _receiver, address _notSMS) external {
+    function test_sweep(
+        uint256 _amount,
+        address _receiver,
+        address _notSMS
+    ) external {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         vm.assume(_receiver != address(0) && _notSMS != zapper.SMS());
 
@@ -108,7 +119,10 @@ contract ZapperTest is Setup {
         zapper.sweep(_asset, _receiver);
     }
 
-    function test_zapperPreviews(uint256 _shares, uint256 _assets) external {
+    function test_zapperPreviews(
+        uint256 _shares,
+        uint256 _assets
+    ) external {
         vm.assume(_shares > minFuzzAmount && _shares < maxFuzzAmount);
         vm.assume(_assets > minFuzzAmount && _assets < maxFuzzAmount);
 

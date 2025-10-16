@@ -70,7 +70,10 @@ contract Zapper {
     /// @param _assets The amount of BOLD to zap in
     /// @param _receiver The address to receive the st-yBOLD
     /// @return The amount of st-yBOLD received
-    function zapIn(uint256 _assets, address _receiver) external returns (uint256) {
+    function zapIn(
+        uint256 _assets,
+        address _receiver
+    ) external returns (uint256) {
         // Pull BOLD
         BOLD.safeTransferFrom(msg.sender, address(this), _assets);
 
@@ -86,7 +89,11 @@ contract Zapper {
     /// @param _receiver The address to receive the BOLD
     /// @param _maxLoss The maximum loss allowed during the zap out
     /// @return The amount of BOLD received
-    function zapOut(uint256 _shares, address _receiver, uint256 _maxLoss) external returns (uint256) {
+    function zapOut(
+        uint256 _shares,
+        address _receiver,
+        uint256 _maxLoss
+    ) external returns (uint256) {
         // Redeem st-yBOLD to yBOLD on behalf of the caller
         _shares = STAKED_YEARN_BOLD.redeem(_shares, address(this), msg.sender, _maxLoss);
 
@@ -102,7 +109,10 @@ contract Zapper {
     /// @dev Only callable by the SMS
     /// @param _token The ERC20 token to sweep
     /// @param _receiver The address to receive the swept tokens
-    function sweep(IERC20 _token, address _receiver) external {
+    function sweep(
+        IERC20 _token,
+        address _receiver
+    ) external {
         require(msg.sender == SMS, "!SMS");
         require(_receiver != address(0), "!receiver");
         uint256 _balance = _token.balanceOf(address(this));

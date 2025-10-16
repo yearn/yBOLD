@@ -9,7 +9,7 @@ contract SettersTest is Setup {
         super.setUp();
     }
 
-    function test_AllowDeposits() public {
+    function test_allowDeposits() public {
         vm.expectRevert("!management");
         strategy.allowDeposits();
 
@@ -19,9 +19,53 @@ contract SettersTest is Setup {
         assertTrue(strategy.openDeposits());
     }
 
-    function test_SetMaxGasPriceToTend(
+    function test_setMinAuctionPriceBps(
+        uint256 _minAuctionPriceBps
+    ) public {
+        vm.assume(_minAuctionPriceBps < MAX_BPS);
+
+        vm.expectRevert("!management");
+        strategy.setMinAuctionPriceBps(_minAuctionPriceBps);
+
+        vm.prank(management);
+        strategy.setMinAuctionPriceBps(_minAuctionPriceBps);
+        assertEq(strategy.minAuctionPriceBps(), _minAuctionPriceBps);
+    }
+
+    function test_setMinAuctionPriceBps_tooHigh(
+        uint256 _minAuctionPriceBps
+    ) public {
+        vm.assume(_minAuctionPriceBps >= MAX_BPS);
+
+        vm.expectRevert("!minAuctionPriceBps");
+        vm.prank(management);
+        strategy.setMinAuctionPriceBps(_minAuctionPriceBps);
+    }
+
+    function test_setMaxAuctionAmount(
+        uint256 _maxAuctionAmount
+    ) public {
+        vm.assume(_maxAuctionAmount > 0);
+
+        vm.expectRevert("!management");
+        strategy.setMaxAuctionAmount(_maxAuctionAmount);
+
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(_maxAuctionAmount);
+        assertEq(strategy.maxAuctionAmount(), _maxAuctionAmount);
+    }
+
+    function test_setMaxAuctionAmount_zero() public {
+        vm.expectRevert("!maxAuctionAmount");
+        vm.prank(management);
+        strategy.setMaxAuctionAmount(0);
+    }
+
+    function test_setMaxGasPriceToTend(
         uint256 _maxGasPriceToTend
     ) public {
+        vm.assume(_maxGasPriceToTend >= strategy.MIN_MAX_GAS_PRICE_TO_TEND());
+
         vm.expectRevert("!management");
         strategy.setMaxGasPriceToTend(_maxGasPriceToTend);
 
@@ -30,7 +74,17 @@ contract SettersTest is Setup {
         assertEq(strategy.maxGasPriceToTend(), _maxGasPriceToTend);
     }
 
-    function test_SetBufferPercentage(
+    function test_setMaxGasPriceToTend_tooLow(
+        uint256 _maxGasPriceToTend
+    ) public {
+        vm.assume(_maxGasPriceToTend < strategy.MIN_MAX_GAS_PRICE_TO_TEND());
+
+        vm.expectRevert("!minMaxGasPrice");
+        vm.prank(management);
+        strategy.setMaxGasPriceToTend(_maxGasPriceToTend);
+    }
+
+    function test_setBufferPercentage(
         uint256 _bufferPercentage
     ) public {
         vm.assume(_bufferPercentage >= strategy.MIN_BUFFER_PERCENTAGE());
@@ -43,7 +97,7 @@ contract SettersTest is Setup {
         assertEq(strategy.bufferPercentage(), _bufferPercentage);
     }
 
-    function test_SetBufferPercentage_TooLow(
+    function test_setBufferPercentage_tooLow(
         uint256 _bufferPercentage
     ) public {
         vm.assume(_bufferPercentage < strategy.MIN_BUFFER_PERCENTAGE());
@@ -53,7 +107,7 @@ contract SettersTest is Setup {
         strategy.setBufferPercentage(_bufferPercentage);
     }
 
-    function test_SetDustThreshold(
+    function test_setDustThreshold(
         uint256 _dustThreshold
     ) public {
         vm.assume(_dustThreshold >= strategy.MIN_DUST_THRESHOLD());
@@ -66,7 +120,7 @@ contract SettersTest is Setup {
         assertEq(strategy.dustThreshold(), _dustThreshold);
     }
 
-    function test_SetDustThreshold_TooLow(
+    function test_setDustThreshold_tooLow(
         uint256 _dustThreshold
     ) public {
         vm.assume(_dustThreshold < strategy.MIN_DUST_THRESHOLD());
@@ -76,7 +130,7 @@ contract SettersTest is Setup {
         strategy.setDustThreshold(_dustThreshold);
     }
 
-    function test_SetAllowed(
+    function test_setAllowed(
         address _address
     ) public {
         vm.expectRevert("!management");
@@ -88,7 +142,7 @@ contract SettersTest is Setup {
         assertTrue(strategy.allowed(_address));
     }
 
-    function test_Sweep(
+    function test_sweep(
         uint256 _amount
     ) public {
         vm.assume(_amount > 0);

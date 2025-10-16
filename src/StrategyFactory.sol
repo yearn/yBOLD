@@ -10,10 +10,9 @@ contract StrategyFactory {
 
     address public immutable emergencyAdmin;
     address public immutable auctionFactory;
-
-    address public management;
-    address public performanceFeeRecipient;
-    address public keeper;
+    address public immutable management;
+    address public immutable performanceFeeRecipient;
+    address public immutable keeper;
 
     /// @notice Track the deployments. asset => stability pool => strategy
     mapping(address => mapping(address => address)) public deployments;
@@ -41,16 +40,18 @@ contract StrategyFactory {
      * @notice Deploy a new Strategy.
      * @param _addressesRegistry The address of the AddressesRegistry.
      * @param _asset The underlying asset for the strategy to use.
+     * @param _oracle Address of the collateral's COLL/USD _read_ price oracle.
      * @return . The address of the new strategy.
      */
     function newStrategy(
         address _addressesRegistry,
         address _asset,
+        address _oracle,
         string calldata _name
     ) external virtual onlyManagement returns (address) {
         // tokenized strategies available setters.
         IStrategyInterface _newStrategy =
-            IStrategyInterface(address(new Strategy(_addressesRegistry, _asset, auctionFactory, _name)));
+            IStrategyInterface(address(new Strategy(_addressesRegistry, _asset, auctionFactory, _oracle, _name)));
 
         _newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 
@@ -64,24 +65,6 @@ contract StrategyFactory {
 
         deployments[_asset][_newStrategy.SP()] = address(_newStrategy);
         return address(_newStrategy);
-    }
-
-    function setAddresses(
-        address _management,
-        address _performanceFeeRecipient,
-        address _keeper
-    ) external onlyManagement {
-        management = _management;
-        performanceFeeRecipient = _performanceFeeRecipient;
-        keeper = _keeper;
-    }
-
-    function isDeployedStrategy(
-        address _strategy
-    ) external view returns (bool) {
-        address _asset = IStrategyInterface(_strategy).asset();
-        address _stabilityPool = IStrategyInterface(_strategy).SP();
-        return deployments[_asset][_stabilityPool] == _strategy;
     }
 
 }

@@ -18,7 +18,10 @@ contract OracleTest is Setup {
         strategy.allowDeposits();
     }
 
-    function checkOracle(address _strategy, uint256 _delta) public {
+    function checkOracle(
+        address _strategy,
+        uint256 _delta
+    ) public {
         // Check set up
         vm.expectRevert("!governance");
         oracle.setCollateralBias(0, 1e18);
@@ -58,7 +61,10 @@ contract OracleTest is Setup {
         assertEq(biasApr, currentApr * 120 / 100);
     }
 
-    function test_oracle(uint256 _amount, uint16 _percentChange) public {
+    function test_oracle(
+        uint256 _amount,
+        uint16 _percentChange
+    ) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         _percentChange = uint16(bound(uint256(_percentChange), 10, MAX_BPS));
 
@@ -70,5 +76,6 @@ contract OracleTest is Setup {
     }
 
     // TODO: Deploy multiple strategies with different tokens as `asset` to test against the oracle.
+
 
 }
