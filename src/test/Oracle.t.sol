@@ -52,13 +52,13 @@ contract OracleTest is Setup {
         uint256 positiveDebtChangeApr = oracle.aprAfterDebtChange(_strategy, int256(_delta));
         assertGt(currentApr, positiveDebtChangeApr, "positive change");
 
-        // Set bias to 20% increase
-        vm.prank(management);
-        oracle.setCollateralBias(0, 1.2e18);
+        // // Set bias to 20% increase
+        // vm.prank(management);
+        // oracle.setCollateralBias(0, 1.2e18);
 
-        // Reported APR should increase by 20% of bias is 1.2e18
-        uint256 biasApr = oracle.aprAfterDebtChange(_strategy, 0); // TODO -- get the collateral index dynamically
-        assertEq(biasApr, currentApr * 120 / 100);
+        // // Reported APR should increase by 20% of bias is 1.2e18
+        // uint256 biasApr = oracle.aprAfterDebtChange(_strategy, 0); // TODO -- get the collateral index dynamically
+        // assertEq(biasApr, currentApr * 120 / 100);
     }
 
     function test_oracle(

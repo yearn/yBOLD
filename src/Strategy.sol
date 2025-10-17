@@ -59,7 +59,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     uint256 public constant AUCTION_PRICE_TOO_LOW_BUFFER_PCT_MULTIPLIER = 50; // 50x
 
     /// @notice Minimum buffer percentage for the auction starting price
-    uint256 public constant MIN_BUFFER_PERCENTAGE = WAD + 15e16; // 15%
+    uint256 public constant MIN_BUFFER_PERCENTAGE = WAD + 20e16; // 20%
 
     /// @notice Minimum `maxGasPriceToTend`
     uint256 public constant MIN_MAX_GAS_PRICE_TO_TEND = 50 * 1e9; // 50 gwei
