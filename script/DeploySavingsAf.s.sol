@@ -6,6 +6,11 @@ import {IVaultFactory} from "@yearn-vaults/interfaces/IVaultFactory.sol";
 
 import {IStrategyInterface} from "../src/interfaces/IStrategyInterface.sol";
 
+import {wstETHPriceOracle} from "../src/periphery/Oracles/wstETHOracle.sol";
+import {rETHPriceOracle} from "../src/periphery/Oracles/rETHOracle.sol";
+import {rsETHPriceOracle} from "../src/periphery/Oracles/rsETHOracle.sol";
+import {weETHPriceOracle} from "../src/periphery/Oracles/weETHOracle.sol";
+
 import {StrategyFactory} from "../src/StrategyFactory.sol";
 
 import "forge-std/Script.sol";
@@ -15,21 +20,20 @@ import "forge-std/Script.sol";
 
 contract DeploySavingsAf is Script {
 
-    // @todo -- set oracles!
-
     address[] public strategies;
 
-    string private constant NAME = "Savings USDaf";
-    string private constant SYMBOL = "sUSDaf";
+    string private constant NAME = "Yearn USND";
+    string private constant SYMBOL = "yUSND";
 
-    address private constant ASSET = 0x9Cf12ccd6020b6888e4D4C4e4c7AcA33c1eB91f8; // USDaf
-    address private constant DEPLOYER = 0x285E3b1E82f74A99D07D2aD25e159E75382bB43B; // deployer
-    address private constant SMS = 0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7; // sms mainnet
-    address private constant KEEPER = 0x604e586F17cE106B64185A7a0d2c1Da5bAce711E; // yHaaS mainnet
-    address private constant ROLE_MANAGER = 0xb3bd6B2E61753C311EFbCF0111f75D29706D9a41;
+    address private constant ASSET = 0x4ecf61a6c2FaB8A047CEB3B3B263B401763e9D49; // USND
+    address private constant DEPLOYER = 0x420ACF637D662b80cca8bEfb327AA24039E7e0Fa; // deployer
+    address private constant SMS = 0x6346282DB8323A54E840c6C772B4399C9c655C0d; // sms arbi
+    address private constant KEEPER = 0xE0D19f6b240659da8E87ABbB73446E7B4346Baee; // yHaaS arbi
+    address private constant EMERGENCY_ADMIN = 0x6346282DB8323A54E840c6C772B4399C9c655C0d; // SMS arbi
+    address private constant PERFORMANCE_FEE_RECIPIENT = 0x9aB47bE62631036CDa3a64B8322704988427F366; // Accountant arbi
+    address private constant AUCTION_FACTORY = address(0xbC587a495420aBB71Bbd40A0e291B64e80117526); // Newest Auction Factory
 
-    StrategyFactory private constant STRATEGY_FACTORY = StrategyFactory(0x73dfCc4fB90E6e252E5D41f6588534a8043dBa58);
-    IVaultFactory private constant VAULT_FACTORY = IVaultFactory(0x770D0d1Fb036483Ed4AbB6d53c1C88fb277D812F); // 3.0.4 Vault Factory
+    IVault private constant VAULT = IVault(0x252b965400862d94BDa35FeCF7Ee0f204a53Cc36); // yUSND
 
     function run() external {
         uint256 _privateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -38,70 +42,77 @@ contract DeploySavingsAf is Script {
         address _deployer = vm.addr(_privateKey);
         require(_deployer == DEPLOYER, "!deployer");
 
-        address _ysyBOLDStrategy = STRATEGY_FACTORY.newStrategy(
-            address(0x3414bd84dfF0900a9046a987f4dF2e0eF08Fa1ce), // ysyBOLD Address Registry
-            ASSET,
-            address(0),
-            "USDaf ysyBOLD Stability Pool"
-        );
-        strategies.push(_ysyBOLDStrategy);
+        StrategyFactory _strategyFactory =
+            new StrategyFactory(DEPLOYER, PERFORMANCE_FEE_RECIPIENT, KEEPER, EMERGENCY_ADMIN, AUCTION_FACTORY);
 
-        address _scrvUSDStrategy = STRATEGY_FACTORY.newStrategy(
-            address(0x0C7B6C6a60ae2016199d393695667c1482719C82), // scrvUSD Address Registry
+        address _wethStrategy = _strategyFactory.newStrategy(
+            address(0xBB6C6B994409b320E25e7dE129e0db5dA60aE89B), // WETH Address Registry
             ASSET,
-            address(0),
-            "USDaf scrvUSD Stability Pool"
+            address(0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612), // Chainlink ETH/USD
+            "USND WETH Stability Pool"
         );
-        strategies.push(_scrvUSDStrategy);
+        strategies.push(_wethStrategy);
 
-        address _sUSDSStrategy = STRATEGY_FACTORY.newStrategy(
-            address(0x330A0fDfc1818Be022FEDCE96A041293E16dc6d1), // sUSDS Address Registry
+        address _wstETHStrategy = _strategyFactory.newStrategy(
+            address(0x5176fDd77FDef5B7F1EDd457D02a8ec1cFebBb34), // wstETH Address Registry
             ASSET,
-            address(0),
-            "USDaf sUSDS Stability Pool"
+            address(new wstETHPriceOracle()), // wstETH/USD Oracle
+            "USND wstETH Stability Pool"
         );
-        strategies.push(_sUSDSStrategy);
+        strategies.push(_wstETHStrategy);
 
-        address _sfrxUSDStrategy = STRATEGY_FACTORY.newStrategy(
-            address(0x0ad1C302203F0fbB6Ca34641BDFeF0Bf4182377c), // sfrxUSD Address Registry
+        address _rETHStrategy = _strategyFactory.newStrategy(
+            address(0x51253Ae341F6dD1c4Ff5692dE0eE69492743895E), // rETH Address Registry
             ASSET,
-            address(0),
-            "USDaf sfrxUSD Stability Pool"
+            address(new rETHPriceOracle()), // rETH/USD Oracle
+            "USND rETH Stability Pool"
         );
-        strategies.push(_sfrxUSDStrategy);
+        strategies.push(_rETHStrategy);
 
-        address _tBTCStrategy = STRATEGY_FACTORY.newStrategy(
-            address(0xbd9f75471990041A3e7C22872c814A273485E999), // tBTC Address Registry
+        address _rsETHStrategy = _strategyFactory.newStrategy(
+            address(0xcbF5786902487C1165a98f48Ebc65Fa0e62739C6), // rsETH Address Registry
             ASSET,
-            address(0),
-            "USDaf tBTC Stability Pool"
+            address(new rsETHPriceOracle()), // rsETH/USD Oracle
+            "USND rsETH Stability Pool"
+        );
+        strategies.push(_rsETHStrategy);
+
+        address _weETHStrategy = _strategyFactory.newStrategy(
+            address(0xc23928FD7D93ccb61ca60F09311De2DdA66c02e4), // weETH Address Registry
+            ASSET,
+            address(new weETHPriceOracle()), // weETH/USD Oracle
+            "USND weETH Stability Pool"
+        );
+        strategies.push(_weETHStrategy);
+
+        address _ARBStrategy = _strategyFactory.newStrategy(
+            address(0x7900B65266e157D9fce97e92Ac3879CB712dEd31), // ARB Address Registry
+            ASSET,
+            address(0xb2A824043730FE05F3DA2efaFa1CBbe83fa548D6), // Chainlink ARB/USD
+            "USND ARB Stability Pool"
+        );
+        strategies.push(_ARBStrategy);
+
+        address _COMPStrategy = _strategyFactory.newStrategy(
+            address(0xfe75AdD51A119e556ACD53676b12f865A6737177), // COMP Address Registry
+            ASSET,
+            address(0xe7C53FFd03Eb6ceF7d208bC4C13446c76d1E5884), // Chainlink COMP/USD
+            "USND COMP Stability Pool"
+        );
+        strategies.push(_COMPStrategy);
+
+        address _tBTCStrategy = _strategyFactory.newStrategy(
+            address(0xF329FB0E818bD92395785a4f863636bC0D85e1DF), // tBTC Address Registry
+            ASSET,
+            address(0xE808488e8627F6531bA79a13A9E0271B39abEb1C), // Chainlink tBTC/USD
+            "USND tBTC Stability Pool"
         );
         strategies.push(_tBTCStrategy);
-
-        address _WBTC18Strategy = STRATEGY_FACTORY.newStrategy(
-            address(0x2C5A85a3fd181857D02baff169D1e1cB220ead6d), // WBTC18 Address Registry
-            ASSET,
-            address(0),
-            "USDaf WBTC18 Stability Pool"
-        );
-        strategies.push(_WBTC18Strategy);
-
-        IVault _vault = IVault(VAULT_FACTORY.deploy_new_vault(ASSET, NAME, SYMBOL, DEPLOYER, 3 days));
-        _vault.set_role(DEPLOYER, 16383); // ADD_STRATEGY_MANAGER/DEPOSIT_LIMIT_MANAGER/MAX_DEBT_MANAGER/DEBT_MANAGER
-        _vault.set_role(KEEPER, 32); // REPORTING_MANAGER
-        _vault.set_deposit_limit(100_000_000_000 ether); // 100 billion
-        _vault.set_auto_allocate(true);
-        for (uint256 i = 0; i < strategies.length; i++) {
-            _vault.add_strategy(strategies[i]);
-            _vault.update_max_debt_for_strategy(strategies[i], 10_000_000_000 ether); // 10 billion
-        }
-        _vault.transfer_role_manager(ROLE_MANAGER);
-        // _vault.set_role(DEPLOYER, 0);
 
         for (uint256 i = 0; i < strategies.length; i++) {
             IStrategyInterface strategy = IStrategyInterface(strategies[i]);
             strategy.acceptManagement();
-            strategy.setProfitMaxUnlockTime(0 days);
+            strategy.setProfitMaxUnlockTime(0);
             strategy.setAllowed(address(_vault));
             strategy.setPendingManagement(SMS);
             strategy.setPerformanceFee(0);
@@ -111,13 +122,16 @@ contract DeploySavingsAf is Script {
         vm.stopBroadcast();
 
         console.log("-----------------------------");
-        console.log("ysyBOLD Strategy deployed at: ", _ysyBOLDStrategy);
-        console.log("scrvUSD Strategy deployed at: ", _scrvUSDStrategy);
-        console.log("sUSDS Strategy deployed at: ", _sUSDSStrategy);
-        console.log("sfrxUSD Strategy deployed at: ", _sfrxUSDStrategy);
+        console.log("WETH Strategy deployed at: ", _wethStrategy);
+        console.log("wstETH Strategy deployed at: ", _wstETHStrategy);
+        console.log("rETH Strategy deployed at: ", _rETHStrategy);
+        console.log("rsETH Strategy deployed at: ", _rsETHStrategy);
+        console.log("weETH Strategy deployed at: ", _weETHStrategy);
+        console.log("ARB Strategy deployed at: ", _ARBStrategy);
+        console.log("COMP Strategy deployed at: ", _COMPStrategy);
         console.log("tBTC Strategy deployed at: ", _tBTCStrategy);
-        console.log("WBTC18 Strategy deployed at: ", _WBTC18Strategy);
-        console.log("sUSDaf deployed at: ", address(_vault));
+        console.log("Vault deployed at: ", address(_vault));
+        console.log("StrategyFactory deployed at: ", address(_strategyFactory));
         console.log("-----------------------------");
     }
 

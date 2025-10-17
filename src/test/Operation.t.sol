@@ -27,9 +27,9 @@ contract OperationTest is Setup {
         assertEq(strategy.minAuctionPriceBps(), 9_500);
         assertEq(strategy.maxAuctionAmount(), type(uint256).max);
         assertEq(strategy.maxGasPriceToTend(), 200 * 1e9);
-        assertEq(strategy.bufferPercentage(), 1.15e18);
+        assertEq(strategy.bufferPercentage(), 1.2e18);
         assertTrue(strategy.AUCTION() != address(0));
-        assertEq(strategy.COLL(), tokenAddrs["WETH"]);
+        assertEq(strategy.COLL(), collateralToken);
         assertEq(strategy.SP(), stabilityPool);
         assertEq(strategy.COLL_PRICE_ORACLE(), collateralPriceOracle);
         assertEq(strategy.CHAINLINK_ORACLE(), collateralChainlinkPriceOracle);
@@ -537,7 +537,7 @@ contract OperationTest is Setup {
         // Check auction starting price
         (uint256 _price,) = IPriceFeed(strategy.COLL_PRICE_ORACLE()).fetchPrice();
         uint256 _toAuctionPrice = _availableToAuction * _price / 1e18;
-        uint256 _expectedStartingPrice = _toAuctionPrice * 115 / 100 / 1e18;
+        uint256 _expectedStartingPrice = _toAuctionPrice * 120 / 100 / 1e18;
         assertEq(IAuction(strategy.AUCTION()).startingPrice(), _expectedStartingPrice);
 
         // Check auction price
@@ -586,7 +586,7 @@ contract OperationTest is Setup {
 
         assertTrue(auction.isActive(coll));
         assertEq(auction.available(coll), _amount * 2);
-        assertApproxEqAbs(auction.startingPrice(), startingPriceBefore * 2, 1);
+        assertApproxEqAbs(auction.startingPrice(), startingPriceBefore * 2, 1, "asd");
     }
 
     function test_tendAfterCollateralGain_cappedByMaxAuctionAmount(
@@ -763,7 +763,7 @@ contract OperationTest is Setup {
 
         // Check auction starting price
         uint256 _toAuctionPrice = _airdropAmount * _price / 1e18;
-        uint256 _expectedStartingPrice = (_toAuctionPrice * (115 * 1000) / 100) / 1e18;
+        uint256 _expectedStartingPrice = (_toAuctionPrice * (120 * 1000) / 100) / 1e18;
         assertEq(IAuction(strategy.AUCTION()).startingPrice(), _expectedStartingPrice);
 
         // Check auction price

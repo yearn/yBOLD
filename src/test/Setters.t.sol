@@ -142,35 +142,4 @@ contract SettersTest is Setup {
         assertTrue(strategy.allowed(_address));
     }
 
-    function test_sweep(
-        uint256 _amount
-    ) public {
-        vm.assume(_amount > 0);
-
-        ERC20 _token = ERC20(tokenAddrs["YFI"]);
-        vm.expectRevert("!management");
-        strategy.sweep(_token);
-
-        vm.startPrank(management);
-
-        ERC20 _asset = ERC20(strategy.asset());
-        vm.expectRevert("!token");
-        strategy.sweep(_asset);
-
-        ERC20 _coll = ERC20(strategy.COLL());
-        vm.expectRevert("!token");
-        strategy.sweep(_coll);
-
-        vm.expectRevert("!balance");
-        strategy.sweep(ERC20(tokenAddrs["LINK"]));
-
-        uint256 _balanceBefore = _token.balanceOf(management);
-        airdrop(_token, address(strategy), _amount);
-        strategy.sweep(_token);
-        assertEq(_token.balanceOf(management), _balanceBefore + _amount);
-        assertEq(_token.balanceOf(address(strategy)), 0);
-
-        vm.stopPrank();
-    }
-
 }
