@@ -18,6 +18,10 @@ import "forge-std/Script.sol";
 // ---- Usage ----
 // forge script script/DeploySavingsAf.s.sol:DeploySavingsAf --verify --legacy --etherscan-api-key $KEY --rpc-url $RPC_URL --broadcast
 
+// verify:
+// --constructor-args $(cast abi-encode "constructor(address,string,address,address,address)" 0x29219dd400f2Bf60E5a23d13Be72B486D4038894 "Silo Lender S/USDC (8)" 0x4E216C15697C1392fE59e1014B009505E05810Df 0x0dd368Cd6D8869F2b21BA3Cb4fd7bA107a2e3752 0x71ccF86Cf63A5d55B12AA7E7079C22f39112Dd7D)
+// forge verify-contract --etherscan-api-key $KEY --watch --chain-id 42161 --compiler-version v0.8.18+commit.87f61d96 --verifier-url https://api.arbiscan.io/api 0x9a5eca1b228e47a15BD9fab07716a9FcE9Eebfb5 src/ERC404/BaseERC404.sol:BaseERC404
+
 contract DeploySavingsAf is Script {
 
     address[] public strategies;
@@ -113,7 +117,7 @@ contract DeploySavingsAf is Script {
             IStrategyInterface strategy = IStrategyInterface(strategies[i]);
             strategy.acceptManagement();
             strategy.setProfitMaxUnlockTime(0);
-            strategy.setAllowed(address(_vault));
+            strategy.setAllowed(address(VAULT));
             strategy.setPendingManagement(SMS);
             strategy.setPerformanceFee(0);
             require(strategy.performanceFee() == 0, "!fee");
@@ -130,7 +134,7 @@ contract DeploySavingsAf is Script {
         console.log("ARB Strategy deployed at: ", _ARBStrategy);
         console.log("COMP Strategy deployed at: ", _COMPStrategy);
         console.log("tBTC Strategy deployed at: ", _tBTCStrategy);
-        console.log("Vault deployed at: ", address(_vault));
+        console.log("yUSND deployed at: ", address(VAULT));
         console.log("StrategyFactory deployed at: ", address(_strategyFactory));
         console.log("-----------------------------");
     }
