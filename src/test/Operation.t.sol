@@ -772,6 +772,40 @@ contract OperationTest is Setup {
         assertApproxEq(IAuction(strategy.AUCTION()).price(strategy.COLL()), _expectedPrice, 1);
     }
 
+    function test_kickAuction_oracleDown_auctionPriceGetsBelowMarketPrice(
+        uint256 _airdropAmount
+    ) public {
+        vm.assume(_airdropAmount > strategy.dustThreshold() && _airdropAmount < maxFuzzAmount);
+
+        // Break the oracle
+        skip(10 days);
+        (uint256 _price, bool _isOracleDown) = IPriceFeed(strategy.COLL_PRICE_ORACLE()).fetchPrice();
+        assertTrue(_isOracleDown);
+
+        // Make sure there's something to kick
+        airdrop(ERC20(strategy.COLL()), address(strategy), _airdropAmount);
+
+        // Kick auction
+        vm.prank(keeper);
+        strategy.tend();
+
+        // Check auction starting price
+        uint256 _toAuctionPrice = _airdropAmount * _price / 1e18;
+        uint256 _expectedStartingPrice = (_toAuctionPrice * (115 * 1000) / 100) / 1e18;
+        assertEq(IAuction(strategy.AUCTION()).startingPrice(), _expectedStartingPrice);
+
+        // Check auction price
+        uint256 _availableToAuction = IAuction(strategy.AUCTION()).available(strategy.COLL());
+        uint256 _expectedPrice = _expectedStartingPrice * 1e36 / _availableToAuction;
+        assertApproxEq(IAuction(strategy.AUCTION()).price(strategy.COLL()), _expectedPrice, 1);
+
+        // Skip to the end of the auction
+        skip(IAuction(strategy.AUCTION()).auctionLength());
+
+        // Make sure auction price is at least 15% below market price
+        assertLt(IAuction(strategy.AUCTION()).price(address(strategy.COLL())), ethPrice() * 1e10 * 85 / 100);
+    }
+
     function test_kickAuction_permissionlessKick(
         address _address
     ) public {
