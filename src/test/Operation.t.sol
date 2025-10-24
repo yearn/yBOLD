@@ -763,7 +763,7 @@ contract OperationTest is Setup {
 
         // Check auction starting price
         uint256 _toAuctionPrice = _airdropAmount * _price / 1e18;
-        uint256 _expectedStartingPrice = (_toAuctionPrice * (115 * 1000) / 100) / 1e18;
+        uint256 _expectedStartingPrice = (_toAuctionPrice * (115 * 200) / 100) / 1e18;
         assertEq(IAuction(strategy.AUCTION()).startingPrice(), _expectedStartingPrice);
 
         // Check auction price
@@ -791,7 +791,7 @@ contract OperationTest is Setup {
 
         // Check auction starting price
         uint256 _toAuctionPrice = _airdropAmount * _price / 1e18;
-        uint256 _expectedStartingPrice = (_toAuctionPrice * (115 * 1000) / 100) / 1e18;
+        uint256 _expectedStartingPrice = (_toAuctionPrice * (115 * 200) / 100) / 1e18;
         assertEq(IAuction(strategy.AUCTION()).startingPrice(), _expectedStartingPrice);
 
         // Check auction price
@@ -802,8 +802,8 @@ contract OperationTest is Setup {
         // Skip to the end of the auction
         skip(IAuction(strategy.AUCTION()).auctionLength());
 
-        // Make sure auction price is at least 15% below market price
-        assertLt(IAuction(strategy.AUCTION()).price(address(strategy.COLL())), ethPrice() * 1e10 * 85 / 100);
+        // Make sure auction price at the end of the auction is at least 80% below market price
+        assertLt(IAuction(strategy.AUCTION()).price(address(strategy.COLL())), ethPrice() * 1e10 * 20 / 100);
     }
 
     function test_kickAuction_permissionlessKick(
