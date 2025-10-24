@@ -806,6 +806,28 @@ contract OperationTest is Setup {
         assertLt(IAuction(strategy.AUCTION()).price(address(strategy.COLL())), ethPrice() * 1e10 * 20 / 100);
     }
 
+    function test_ongoingAuctionAfterPriceTooLow_canOverride(
+        uint256 _amount
+    ) public {
+        vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
+
+        test_tendTrigger_priceTooLow(_amount);
+
+        // We can override the current delayed auction with a fast one
+        vm.prank(keeper);
+        strategy.tend();
+
+        // Check auction starting price
+        (uint256 _price,) = IPriceFeed(strategy.COLL_PRICE_ORACLE()).fetchPrice();
+        uint256 _toAuctionPrice = _amount * _price / 1e18;
+        uint256 _expectedStartingPrice = _toAuctionPrice * 115 / 100 / 1e18;
+        assertEq(IAuction(strategy.AUCTION()).startingPrice(), _expectedStartingPrice);
+
+        // Check auction price
+        uint256 _expectedPrice = _expectedStartingPrice * 1e36 / _amount;
+        assertApproxEq(IAuction(strategy.AUCTION()).price(strategy.COLL()), _expectedPrice, 1);
+    }
+
     function test_kickAuction_permissionlessKick(
         address _address
     ) public {
