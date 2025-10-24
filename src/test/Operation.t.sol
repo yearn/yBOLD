@@ -437,6 +437,49 @@ contract OperationTest is Setup {
         assertFalse(trigger);
     }
 
+    // NOTE: this test may fail depending on the `collateralChainlinkPriceOracleHeartbeat` value
+    //       bc of conditions around oracle staleness and auction time
+    function test_tendTrigger_priceTooLow_butCLOracleStale(
+        uint256 _amount,
+        int256 _clPrice
+    ) public {
+        vm.assume(_amount > strategy.dustThreshold() && _amount < maxFuzzAmount);
+        vm.assume(_clPrice <= 0);
+
+        // Deposit into strategy
+        mintAndDepositIntoStrategy(strategy, user, _amount);
+
+        // Make sure there's something to kick
+        airdrop(ERC20(strategy.COLL()), address(strategy), _amount);
+
+        (bool trigger,) = strategy.tendTrigger();
+        assertTrue(trigger);
+
+        // Kick it
+        vm.prank(keeper);
+        strategy.tend();
+
+        // Skip enough time such that price is too low
+        skip(1 hours);
+
+        // Make sure auction price is lower than our min price
+        assertTrue(
+            IAuction(strategy.AUCTION()).price(address(strategy.COLL()))
+                < ethPrice() * 1e10 * strategy.minAuctionPriceBps() / MAX_BPS
+        );
+
+        // We need to start a new auction now
+        (trigger,) = strategy.tendTrigger();
+        assertTrue(trigger);
+
+        // Break the heartbeat by skipping time
+        skip(1 hours);
+
+        // We no longer do the auction price check, so no need to tend again
+        (trigger,) = strategy.tendTrigger();
+        assertFalse(trigger);
+    }
+
     function test_tendTrigger_priceTooLow_checkDisabled(
         uint256 _amount
     ) public {

@@ -19,6 +19,8 @@ contract DeploySavingsAf is Script {
 
     address[] public strategies;
 
+    uint256 private collateralChainlinkPriceOracleHeartbeat = 86_400; // 24 hours // @todo -- set correct heartbeat!
+
     string private constant NAME = "Savings USDaf";
     string private constant SYMBOL = "sUSDaf";
 
@@ -42,6 +44,7 @@ contract DeploySavingsAf is Script {
             address(0x3414bd84dfF0900a9046a987f4dF2e0eF08Fa1ce), // ysyBOLD Address Registry
             ASSET,
             address(0),
+            collateralChainlinkPriceOracleHeartbeat,
             "USDaf ysyBOLD Stability Pool"
         );
         strategies.push(_ysyBOLDStrategy);
@@ -50,6 +53,7 @@ contract DeploySavingsAf is Script {
             address(0x0C7B6C6a60ae2016199d393695667c1482719C82), // scrvUSD Address Registry
             ASSET,
             address(0),
+            collateralChainlinkPriceOracleHeartbeat,
             "USDaf scrvUSD Stability Pool"
         );
         strategies.push(_scrvUSDStrategy);
@@ -58,6 +62,7 @@ contract DeploySavingsAf is Script {
             address(0x330A0fDfc1818Be022FEDCE96A041293E16dc6d1), // sUSDS Address Registry
             ASSET,
             address(0),
+            collateralChainlinkPriceOracleHeartbeat,
             "USDaf sUSDS Stability Pool"
         );
         strategies.push(_sUSDSStrategy);
@@ -66,6 +71,7 @@ contract DeploySavingsAf is Script {
             address(0x0ad1C302203F0fbB6Ca34641BDFeF0Bf4182377c), // sfrxUSD Address Registry
             ASSET,
             address(0),
+            collateralChainlinkPriceOracleHeartbeat,
             "USDaf sfrxUSD Stability Pool"
         );
         strategies.push(_sfrxUSDStrategy);
@@ -74,6 +80,7 @@ contract DeploySavingsAf is Script {
             address(0xbd9f75471990041A3e7C22872c814A273485E999), // tBTC Address Registry
             ASSET,
             address(0),
+            collateralChainlinkPriceOracleHeartbeat,
             "USDaf tBTC Stability Pool"
         );
         strategies.push(_tBTCStrategy);
@@ -82,6 +89,7 @@ contract DeploySavingsAf is Script {
             address(0x2C5A85a3fd181857D02baff169D1e1cB220ead6d), // WBTC18 Address Registry
             ASSET,
             address(0),
+            collateralChainlinkPriceOracleHeartbeat,
             "USDaf WBTC18 Stability Pool"
         );
         strategies.push(_WBTC18Strategy);

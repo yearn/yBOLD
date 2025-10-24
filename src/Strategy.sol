@@ -71,6 +71,10 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     ///   considered worth depositing during harvests
     uint256 public constant MIN_DUST_THRESHOLD = 1e15;
 
+    /// @notice Heartbeat of the `CHAINLINK_ORACLE`
+    /// @dev We will skip the `_isAuctionPriceTooLow` check if the oracle is stale
+    uint256 public immutable CHAINLINK_ORACLE_HEARTBEAT;
+
     /// @notice Asset dust threshold. We will not bother depositing amounts below this value on harvests
     uint256 public constant ASSET_DUST_THRESHOLD = MIN_DUST_THRESHOLD;
 
@@ -100,12 +104,14 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @param _asset Address of the strategy's underlying asset
     /// @param _auctionFactory Address of the AuctionFactory
     /// @param _oracle Address of the COLL/USD _read_ price oracle
+    /// @param _oracleHeartbeat Heartbeat of the `_oracle`
     /// @param _name Name of the strategy
     constructor(
         address _addressesRegistry,
         address _asset,
         address _auctionFactory,
         address _oracle,
+        uint256 _oracleHeartbeat,
         string memory _name
     ) BaseHealthCheck(_asset, _name) {
         COLL_PRICE_ORACLE = IAddressesRegistry(_addressesRegistry).priceFeed();
@@ -114,6 +120,7 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
         CHAINLINK_ORACLE = AggregatorV3Interface(_oracle);
         require(CHAINLINK_ORACLE.decimals() == 8, "!decimals");
+        CHAINLINK_ORACLE_HEARTBEAT = _oracleHeartbeat;
 
         SP = IAddressesRegistry(_addressesRegistry).stabilityPool();
         require(SP.boldToken() == _asset, "!sp");
@@ -355,8 +362,10 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
         if (AUCTION.available(address(COLL)) <= dustThreshold) return false;
 
         // Get the current market price of the collateral from Chainlink
-        (, int256 _answer,,,) = CHAINLINK_ORACLE.latestRoundData();
-        if (_answer <= 0) return false;
+        (, int256 _answer,, uint256 _updatedAt,) = CHAINLINK_ORACLE.latestRoundData();
+
+        // If the oracle is stale, return false
+        if (_isStale(_answer, _updatedAt)) return false;
 
         // Scale the answer to 18 decimals
         uint256 _marketPrice = uint256(_answer) * CHAINLINK_TO_WAD;
@@ -369,6 +378,18 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
         // Return true if auction price is below our minimum acceptable price
         return _auctionPrice < _minPrice;
+    }
+
+    /// @notice Check if the Chainlink oracle is stale
+    /// @param _answer Latest answer from the oracle
+    /// @param _updatedAt Timestamp of the latest answer from the oracle
+    /// @return True if the oracle is stale
+    function _isStale(
+        int256 _answer,
+        uint256 _updatedAt
+    ) internal view virtual returns (bool) {
+        bool _stale = _updatedAt + CHAINLINK_ORACLE_HEARTBEAT <= block.timestamp;
+        return _stale || _answer <= 0;
     }
 
 }

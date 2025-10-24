@@ -52,6 +52,7 @@ contract Setup is ExtendedTest, IEvents {
     address public stabilityPool = address(0x5721cbbd64fc7Ae3Ef44A0A3F9a790A9264Cf9BF); // WETH Stability Pool
     address public collateralPriceOracle = address(0xCC5F8102eb670c89a4a3c567C13851260303c24F); // Liquity WETH Price Oracle
     address public collateralChainlinkPriceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
+    uint256 public collateralChainlinkPriceOracleHeartbeat = 3600 * 2; // Chainlink docs say 3600 seconds, we double it
     address public auctionFactory = address(0xbC587a495420aBB71Bbd40A0e291B64e80117526); // Newest Auction Factory
 
     // Address of the real deployed Factory
@@ -103,7 +104,11 @@ contract Setup is ExtendedTest, IEvents {
         IStrategyInterface _strategy = IStrategyInterface(
             address(
                 strategyFactory.newStrategy(
-                    addressesRegistry, address(asset), collateralChainlinkPriceOracle, "Tokenized Strategy"
+                    addressesRegistry,
+                    address(asset),
+                    collateralChainlinkPriceOracle,
+                    collateralChainlinkPriceOracleHeartbeat,
+                    "Tokenized Strategy"
                 )
             )
         );
