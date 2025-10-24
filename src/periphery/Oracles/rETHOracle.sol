@@ -52,6 +52,7 @@ contract rETHOracle is BaseOracle {
         if (_isStale(ethUsdPrice, ethUsdUpdatedAt, ETH_USD_HEARTBEAT)) return (0, 0, 0, 0, 0);
 
         // Scale price to 8 decimals
+        // slither-disable-next-line divide-before-multiply
         rEthEthPrice = rEthEthPrice / _1E10; // 18 -> 8
 
         // Calculate rETH/USD price with 8 decimals

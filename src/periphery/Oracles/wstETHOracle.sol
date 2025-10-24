@@ -54,6 +54,7 @@ contract wstETHOracle is BaseOracle {
         if (stEthwstEthPrice == 0) return (0, 0, 0, 0, 0);
 
         // Scale price to 8 decimals
+        // slither-disable-next-line divide-before-multiply
         stEthwstEthPrice = stEthwstEthPrice / _1E10; // 18 -> 8
 
         // Calculate wstETH/USD price with 8 decimals

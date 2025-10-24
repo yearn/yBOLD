@@ -103,6 +103,7 @@ contract StrategyAprOracle is AprOracleBase {
         // slither-disable-start uninitialized-local
         uint256 _totalDebt;
         uint256 _weightedInterestRate;
+        // slither-disable-end uninitialized-local
         for (uint256 i = 0; i < _count; ++i) {
             uint256 _debt = _troves[i].entireDebt;
             uint256 _annualInterestRate = _troves[i].annualInterestRate;
