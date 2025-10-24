@@ -152,7 +152,15 @@ contract Accountant {
         address strategy,
         uint256 gain,
         uint256 loss
-    ) public virtual onlyAddedVaults returns (uint256 totalFees, uint256 /* totalRefunds */) {
+    )
+        public
+        virtual
+        onlyAddedVaults
+        returns (
+            uint256 totalFees,
+            uint256 /* totalRefunds */
+        )
+    {
         // Declare the config to use as the custom.
         Fee memory fee = customConfig[msg.sender];
 
