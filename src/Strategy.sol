@@ -5,7 +5,6 @@ import {BaseHealthCheck, BaseStrategy, ERC20} from "@periphery/Bases/HealthCheck
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {AggregatorV3Interface} from "./interfaces/AggregatorV3Interface.sol";
 import {IPriceFeed} from "./interfaces/IPriceFeed.sol";
 import {IStabilityPool} from "./interfaces/IStabilityPool.sol";
 import {IAuction} from "./interfaces/IAuction.sol";
@@ -49,14 +48,8 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice WAD constant
     uint256 private constant WAD = 1e18;
 
-    /// @notice Multiplier to scale 8-decimal Chainlink price to 18 decimals
-    uint256 private constant CHAINLINK_TO_WAD = 1e10;
-
     /// @notice Auction starting price buffer percentage increase when the oracle is down
     uint256 public constant ORACLE_DOWN_BUFFER_PCT_MULTIPLIER = 200; // 200x
-
-    /// @notice Auction starting price buffer percentage increase when the auction price is too low
-    uint256 public constant AUCTION_PRICE_TOO_LOW_BUFFER_PCT_MULTIPLIER = 50; // 50x
 
     /// @notice Minimum buffer percentage for the auction starting price
     uint256 public constant MIN_BUFFER_PERCENTAGE = WAD + 15e16; // 15%
@@ -71,10 +64,6 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     ///   considered worth depositing during harvests
     uint256 public constant MIN_DUST_THRESHOLD = 1e15;
 
-    /// @notice Heartbeat of the `CHAINLINK_ORACLE`
-    /// @dev We will skip the `_isAuctionPriceTooLow` check if the oracle is stale
-    uint256 public immutable CHAINLINK_ORACLE_HEARTBEAT;
-
     /// @notice Asset dust threshold. We will not bother depositing amounts below this value on harvests
     uint256 public constant ASSET_DUST_THRESHOLD = MIN_DUST_THRESHOLD;
 
@@ -84,11 +73,6 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @notice Liquity's price oracle for the collateral token
     /// @dev Assumes the price feed is using 18 decimals
     IPriceFeed public immutable COLL_PRICE_ORACLE;
-
-    /// @notice Direct reference to the underlying Chainlink price feed used by `COLL_PRICE_ORACLE`
-    /// @dev This feed provides a read-only price for the collateral asset without
-    ///      performing Liquity's internal validity or heartbeat checks
-    AggregatorV3Interface public immutable CHAINLINK_ORACLE;
 
     /// @notice Stability Pool contract
     IStabilityPool public immutable SP;
@@ -103,30 +87,23 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @param _addressesRegistry Address of the AddressesRegistry
     /// @param _asset Address of the strategy's underlying asset
     /// @param _auctionFactory Address of the AuctionFactory
-    /// @param _oracle Address of the COLL/USD _read_ price oracle
-    /// @param _oracleHeartbeat Heartbeat of the `_oracle`
     /// @param _name Name of the strategy
     constructor(
         address _addressesRegistry,
         address _asset,
         address _auctionFactory,
-        address _oracle,
-        uint256 _oracleHeartbeat,
         string memory _name
     ) BaseHealthCheck(_asset, _name) {
         COLL_PRICE_ORACLE = IAddressesRegistry(_addressesRegistry).priceFeed();
         (, bool _isOracleDown) = COLL_PRICE_ORACLE.fetchPrice();
         require(!_isOracleDown && COLL_PRICE_ORACLE.priceSource() == IPriceFeed.PriceSource.primary, "!oracle");
 
-        CHAINLINK_ORACLE = AggregatorV3Interface(_oracle);
-        require(CHAINLINK_ORACLE.decimals() == 8, "!decimals");
-        CHAINLINK_ORACLE_HEARTBEAT = _oracleHeartbeat;
-
         SP = IAddressesRegistry(_addressesRegistry).stabilityPool();
         require(SP.boldToken() == _asset, "!sp");
         COLL = ERC20(SP.collToken());
 
         AUCTION = IAuctionFactory(_auctionFactory).createNewAuction(_asset);
+        AUCTION.setGovernanceOnlyKick(true);
         AUCTION.enable(address(COLL));
 
         minAuctionPriceBps = 9_500; // 95%
@@ -294,12 +271,6 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     ) internal override {
         if (isCollateralGainToClaim()) claim();
 
-        // If auction price is below our acceptable threshold, we will start a new one with an increased starting price
-        // such that there's a larger delay before we reach our minimum acceptable price again
-        bool _isPriceTooLow = false;
-        if (_isAuctionPriceTooLow()) _isPriceTooLow = true;
-
-        // If there's an active auction, sweep if needed, and settle
         if (AUCTION.isActive(address(COLL))) {
             if (AUCTION.available(address(COLL)) > 0) AUCTION.sweep(address(COLL));
             AUCTION.settle(address(COLL));
@@ -312,12 +283,11 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
             uint256 _bufferPercentage = bufferPercentage;
             if (_isOracleDown || COLL_PRICE_ORACLE.priceSource() != IPriceFeed.PriceSource.primary) {
                 _bufferPercentage *= ORACLE_DOWN_BUFFER_PCT_MULTIPLIER;
-            } else if (_isPriceTooLow) {
-                _bufferPercentage *= AUCTION_PRICE_TOO_LOW_BUFFER_PCT_MULTIPLIER;
             }
 
             // slither-disable-next-line divide-before-multiply
-            AUCTION.setStartingPrice(_available * _price / WAD * _bufferPercentage / WAD / WAD); // Reverts if there's an active auction
+            AUCTION.setStartingPrice(_available * _price / WAD * _bufferPercentage / WAD / WAD);
+            AUCTION.setMinimumPrice(_price * minAuctionPriceBps / MAX_BPS);
 
             COLL.safeTransfer(address(AUCTION), _toAuction);
             AUCTION.kick(address(COLL));
@@ -329,14 +299,8 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     // ===============================================================
 
     /// @inheritdoc BaseStrategy
-    /// @dev Tend is triggered if either:
-    ///    - we need to stop an unhealthy auction, OR
-    ///    - basefee <= maxGasPriceToTend and we have gains or collateral to auction
     function _tendTrigger() internal view override returns (bool) {
         if (TokenizedStrategy.totalAssets() == 0) return false;
-
-        // Check if active auction price is below our acceptable threshold
-        if (_isAuctionPriceTooLow()) return true;
 
         // If active auction, wait
         if (AUCTION.available(address(COLL)) > dustThreshold) return false;
@@ -347,49 +311,6 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
 
         // If base fee is acceptable and there's collateral to sell, tend to minimize exchange rate exposure
         return block.basefee <= maxGasPriceToTend && (isCollateralGainToClaim() || _available > dustThreshold);
-    }
-
-    /// @notice Used to trigger emergency stopping of unhealthy auctions
-    /// @dev Returns true if there is an active auction and its price is
-    ///      below our minimum acceptable price
-    function _isAuctionPriceTooLow() internal view returns (bool) {
-        uint256 _minAuctionPriceBps = minAuctionPriceBps;
-
-        // If zero, the check is disabled
-        if (_minAuctionPriceBps == 0) return false;
-
-        // If no active auction, return false
-        if (AUCTION.available(address(COLL)) <= dustThreshold) return false;
-
-        // Get the current market price of the collateral from Chainlink
-        (, int256 _answer,, uint256 _updatedAt,) = CHAINLINK_ORACLE.latestRoundData();
-
-        // If the oracle is stale, return false
-        if (_isStale(_answer, _updatedAt)) return false;
-
-        // Scale the answer to 18 decimals
-        uint256 _marketPrice = uint256(_answer) * CHAINLINK_TO_WAD;
-
-        // Our minimum acceptable price (some % below market price)
-        uint256 _minPrice = _marketPrice * _minAuctionPriceBps / MAX_BPS;
-
-        // Price per unit of collateral required by the auction
-        uint256 _auctionPrice = AUCTION.price(address(COLL));
-
-        // Return true if auction price is below our minimum acceptable price
-        return _auctionPrice < _minPrice;
-    }
-
-    /// @notice Check if the Chainlink oracle is stale
-    /// @param _answer Latest answer from the oracle
-    /// @param _updatedAt Timestamp of the latest answer from the oracle
-    /// @return True if the oracle is stale
-    function _isStale(
-        int256 _answer,
-        uint256 _updatedAt
-    ) internal view virtual returns (bool) {
-        bool _stale = _updatedAt + CHAINLINK_ORACLE_HEARTBEAT <= block.timestamp;
-        return _stale || _answer <= 0;
     }
 
 }
