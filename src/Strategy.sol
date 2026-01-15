@@ -251,6 +251,9 @@ contract LiquityV2SPStrategy is BaseHealthCheck {
     /// @inheritdoc BaseStrategy
     function _harvestAndReport() internal override returns (uint256 _totalAssets) {
         if (!TokenizedStrategy.isShutdown()) {
+            uint256 _toClaim = SP.getDepositorYieldGain(address(this));
+            if (_toClaim > ASSET_DUST_THRESHOLD) claim();
+
             uint256 _toDeploy = asset.balanceOf(address(this));
             if (_toDeploy > ASSET_DUST_THRESHOLD) _deployFunds(_toDeploy);
         }

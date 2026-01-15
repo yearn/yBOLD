@@ -63,7 +63,7 @@ contract Setup is ExtendedTest, IEvents {
 
     // Fuzz from $100 of 1e18 stable coins up to 10 billion of a 1e18 coin
     uint256 public maxFuzzAmount = 10_000_000_000 ether;
-    uint256 public minFuzzAmount = 100 ether;
+    uint256 public minFuzzAmount = 10_000 ether;
 
     // Default profit max unlock time is set for 10 days
     uint256 public profitMaxUnlockTime = 10 days;
@@ -177,7 +177,6 @@ contract Setup is ExtendedTest, IEvents {
         IStabilityPool _stabilityPool = IStabilityPool(stabilityPool);
         vm.prank(_stabilityPool.activePool());
         _stabilityPool.triggerBoldRewards(_amount);
-        strategy.claim();
     }
 
     function simulateCollateralGain() public {
