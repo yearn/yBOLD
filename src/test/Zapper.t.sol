@@ -123,8 +123,8 @@ contract ZapperTest is Setup {
         uint256 _shares,
         uint256 _assets
     ) external {
-        vm.assume(_shares > minFuzzAmount && _shares < maxFuzzAmount);
-        vm.assume(_assets > minFuzzAmount && _assets < maxFuzzAmount);
+        _shares = bound(_shares, minFuzzAmount, maxFuzzAmount);
+        _assets = bound(_assets, minFuzzAmount, maxFuzzAmount);
 
         assertEq(oracle.convertToAssets(_shares), zapper.previewRedeem(_shares));
         assertEq(oracle.convertToShares(_assets), zapper.previewDeposit(_assets));

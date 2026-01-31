@@ -40,21 +40,16 @@ contract StrategyFactory {
      * @notice Deploy a new Strategy.
      * @param _addressesRegistry The address of the AddressesRegistry.
      * @param _asset The underlying asset for the strategy to use.
-     * @param _oracle Address of the collateral's COLL/USD _read_ price oracle.
-     * @param _oracleHeartbeat Heartbeat of the `_oracle`
      * @return . The address of the new strategy.
      */
     function newStrategy(
         address _addressesRegistry,
         address _asset,
-        address _oracle,
-        uint256 _oracleHeartbeat,
         string calldata _name
     ) external virtual onlyManagement returns (address) {
         // tokenized strategies available setters.
-        IStrategyInterface _newStrategy = IStrategyInterface(
-            address(new Strategy(_addressesRegistry, _asset, auctionFactory, _oracle, _oracleHeartbeat, _name))
-        );
+        IStrategyInterface _newStrategy =
+            IStrategyInterface(address(new Strategy(_addressesRegistry, _asset, auctionFactory, _name)));
 
         _newStrategy.setPerformanceFeeRecipient(performanceFeeRecipient);
 

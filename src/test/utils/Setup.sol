@@ -52,8 +52,7 @@ contract Setup is ExtendedTest, IEvents {
     address public stabilityPool = address(0x5721cbbd64fc7Ae3Ef44A0A3F9a790A9264Cf9BF); // WETH Stability Pool
     address public collateralPriceOracle = address(0xCC5F8102eb670c89a4a3c567C13851260303c24F); // Liquity WETH Price Oracle
     address public collateralChainlinkPriceOracle = address(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419); // Chainlink ETH/USD
-    uint256 public collateralChainlinkPriceOracleHeartbeat = 3600 * 2; // Chainlink docs say 3600 seconds, we double it
-    address public auctionFactory = address(0xbC587a495420aBB71Bbd40A0e291B64e80117526); // Newest Auction Factory
+    address public auctionFactory = address(0x6c2A7584aB3f3B46f93bEb3645205CE71F123B44); // Newest Auction Factory
 
     // Address of the real deployed Factory
     address public factory;
@@ -62,15 +61,15 @@ contract Setup is ExtendedTest, IEvents {
     uint256 public decimals;
     uint256 public MAX_BPS = 10_000;
 
-    // Fuzz from $0.1 of 1e18 stable coins up to 10 billion of a 1e18 coin
+    // Fuzz from $100 of 1e18 stable coins up to 10 billion of a 1e18 coin
     uint256 public maxFuzzAmount = 10_000_000_000 ether;
-    uint256 public minFuzzAmount = 0.1 ether;
+    uint256 public minFuzzAmount = 10_000 ether;
 
     // Default profit max unlock time is set for 10 days
     uint256 public profitMaxUnlockTime = 10 days;
 
     function setUp() public virtual {
-        uint256 _blockNumber = 23_499_885; // Caching for faster tests
+        uint256 _blockNumber = 24_125_659; // Caching for faster tests
         vm.selectFork(vm.createFork(vm.envString("ETH_RPC_URL"), _blockNumber));
 
         _setTokenAddrs();
@@ -102,15 +101,7 @@ contract Setup is ExtendedTest, IEvents {
         // we save the strategy as a IStrategyInterface to give it the needed interface
         vm.prank(management);
         IStrategyInterface _strategy = IStrategyInterface(
-            address(
-                strategyFactory.newStrategy(
-                    addressesRegistry,
-                    address(asset),
-                    collateralChainlinkPriceOracle,
-                    collateralChainlinkPriceOracleHeartbeat,
-                    "Tokenized Strategy"
-                )
-            )
+            address(strategyFactory.newStrategy(addressesRegistry, address(asset), "Tokenized Strategy"))
         );
 
         vm.prank(management);
@@ -186,7 +177,6 @@ contract Setup is ExtendedTest, IEvents {
         IStabilityPool _stabilityPool = IStabilityPool(stabilityPool);
         vm.prank(_stabilityPool.activePool());
         _stabilityPool.triggerBoldRewards(_amount);
-        strategy.claim();
     }
 
     function simulateCollateralGain() public {

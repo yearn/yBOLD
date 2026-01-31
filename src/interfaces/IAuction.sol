@@ -13,10 +13,17 @@ interface IAuction {
     function price(
         address _from
     ) external view returns (uint256);
+    function minimumPrice() external view returns (uint256);
     function startingPrice() external view returns (uint256);
     function kick(
         address _token
     ) external returns (uint256);
+    function setGovernanceOnlyKick(
+        bool _governanceOnlyKick
+    ) external;
+    function setMinimumPrice(
+        uint256 _minimumPrice
+    ) external;
     function setStartingPrice(
         uint256 _startingPrice
     ) external;
