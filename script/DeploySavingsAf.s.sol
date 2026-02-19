@@ -25,8 +25,9 @@ contract DeploySavingsAf is Script {
     address private constant SMS = 0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7; // sms mainnet
     address private constant KEEPER = 0x604e586F17cE106B64185A7a0d2c1Da5bAce711E; // yHaaS mainnet
     address private constant ROLE_MANAGER = 0xb3bd6B2E61753C311EFbCF0111f75D29706D9a41;
+    address private constant VAULT = 0x89E93172AEF8261Db8437b90c3dCb61545a05317; // sUSDaf
 
-    StrategyFactory private constant STRATEGY_FACTORY = StrategyFactory(0x73dfCc4fB90E6e252E5D41f6588534a8043dBa58);
+    StrategyFactory private constant STRATEGY_FACTORY = StrategyFactory(0xbf7A38C6de0831916301B8dD09BD72FBd0C547D1);
     IVaultFactory private constant VAULT_FACTORY = IVaultFactory(0x770D0d1Fb036483Ed4AbB6d53c1C88fb277D812F); // 3.0.4 Vault Factory
 
     function run() external {
@@ -78,23 +79,23 @@ contract DeploySavingsAf is Script {
         );
         strategies.push(_WBTC18Strategy);
 
-        IVault _vault = IVault(VAULT_FACTORY.deploy_new_vault(ASSET, NAME, SYMBOL, DEPLOYER, 3 days));
-        _vault.set_role(DEPLOYER, 16383); // ADD_STRATEGY_MANAGER/DEPOSIT_LIMIT_MANAGER/MAX_DEBT_MANAGER/DEBT_MANAGER
-        _vault.set_role(KEEPER, 32); // REPORTING_MANAGER
-        _vault.set_deposit_limit(100_000_000_000 ether); // 100 billion
-        _vault.set_auto_allocate(true);
-        for (uint256 i = 0; i < strategies.length; i++) {
-            _vault.add_strategy(strategies[i]);
-            _vault.update_max_debt_for_strategy(strategies[i], 10_000_000_000 ether); // 10 billion
-        }
-        _vault.transfer_role_manager(ROLE_MANAGER);
+        // IVault _vault = IVault(VAULT_FACTORY.deploy_new_vault(ASSET, NAME, SYMBOL, DEPLOYER, 3 days));
+        // _vault.set_role(DEPLOYER, 16383); // ADD_STRATEGY_MANAGER/DEPOSIT_LIMIT_MANAGER/MAX_DEBT_MANAGER/DEBT_MANAGER
+        // _vault.set_role(KEEPER, 32); // REPORTING_MANAGER
+        // _vault.set_deposit_limit(100_000_000_000 ether); // 100 billion
+        // _vault.set_auto_allocate(true);
+        // for (uint256 i = 0; i < strategies.length; i++) {
+        //     _vault.add_strategy(strategies[i]);
+        //     _vault.update_max_debt_for_strategy(strategies[i], 10_000_000_000 ether); // 10 billion
+        // }
+        // _vault.transfer_role_manager(ROLE_MANAGER);
         // _vault.set_role(DEPLOYER, 0);
 
         for (uint256 i = 0; i < strategies.length; i++) {
             IStrategyInterface strategy = IStrategyInterface(strategies[i]);
             strategy.acceptManagement();
             strategy.setProfitMaxUnlockTime(0 days);
-            strategy.setAllowed(address(_vault));
+            strategy.setAllowed(VAULT);
             strategy.setPendingManagement(SMS);
             strategy.setPerformanceFee(0);
             require(strategy.performanceFee() == 0, "!fee");
@@ -109,7 +110,7 @@ contract DeploySavingsAf is Script {
         console.log("sfrxUSD Strategy deployed at: ", _sfrxUSDStrategy);
         console.log("tBTC Strategy deployed at: ", _tBTCStrategy);
         console.log("WBTC18 Strategy deployed at: ", _WBTC18Strategy);
-        console.log("sUSDaf deployed at: ", address(_vault));
+        console.log("sUSDaf deployed at: ", VAULT);
         console.log("-----------------------------");
     }
 
